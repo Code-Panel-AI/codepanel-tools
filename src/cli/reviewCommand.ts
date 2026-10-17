@@ -2,10 +2,10 @@
  * `codepanel review`: show a review, trigger one, or wait for it to finish.
  */
 import type { CodePanelClient, Question, ReviewSnapshot, TriggerResult } from "../lib/client";
-import { triggerAndWait, type WaitResult, waitForReview } from "../lib/wait";
+import { triggerAndWait, type WaitOptions, type WaitResult, waitForReview } from "../lib/wait";
 import type { Command } from "./args";
 
-export interface ExecuteOptions {
+export interface ExecuteOptions extends Pick<WaitOptions, "sleep" | "now"> {
 	/** Cancels a `review --wait` (e.g. on Ctrl-C). */
 	signal?: AbortSignal;
 }
@@ -19,6 +19,8 @@ export function executeReview(
 	const target = { repo: command.repo, pr: command.pr };
 	const wait = {
 		signal: options.signal,
+		sleep: options.sleep,
+		now: options.now,
 		timeoutMs: command.timeoutSeconds === undefined ? undefined : command.timeoutSeconds * 1000,
 		headSha: command.sha,
 		surface: "cli" as const,
@@ -50,12 +52,14 @@ export function formatReview(r: ReviewSnapshot): string {
 	const head = `Status ${r.status}, round ${r.round ?? 0}: ${r.open.critical} critical, ${r.open.warning} warning, ${r.open.suggestion} suggestion`;
 	const verdict = r.payload ? [verdictSummary(r.payload)] : [];
 	const next = r.payload?.nextAction ? [nextActionLine(r.payload.nextAction)] : [];
+	const stepBack = r.payload?.stepBack ? [stepBackLine(r.payload.stepBack)] : [];
 	return [
 		head,
 		formatRounds(r.rounds, r.payload?.nextRound),
 		formatGate(r.gate),
 		...verdict,
 		...next,
+		...stepBack,
 		...findingLines(r),
 	].join("\n");
 }
@@ -64,6 +68,11 @@ export function formatReview(r: ReviewSnapshot): string {
 function nextActionLine(next: NonNullable<Payload["nextAction"]>): string {
 	const refs = next.refs.length > 0 ? ` ${next.refs.join(", ")}` : "";
 	return `Next: ${next.action}${refs} (${next.reason}).`;
+}
+
+/** payload.stepBack: advice only; the Next line is still what to do. */
+function stepBackLine(s: NonNullable<Payload["stepBack"]>): string {
+	return `Step back: round ${s.rounds}, ${s.findingsAfterRound1} of ${s.totalFindings} findings first reported after round 1; ${s.reason}. Off with: codepanel repos set <repo> --step-back-after-rounds 0.`;
 }
 
 const STATUS_PROBLEM = {

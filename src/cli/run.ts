@@ -183,9 +183,12 @@ function formatRepos(repos: Repo[]): string {
 			const rounds = cap === undefined ? "" : `  max ${cap} auto rounds`;
 			const bots = r.settings.botMaxRounds;
 			const botCap = bots === undefined ? "" : `  bots up to ${bots}`;
+			const back = r.settings.stepBackAfterRounds;
+			const stepBack =
+				back === undefined ? "" : back === 0 ? "  step back off" : `  step back from round ${back}`;
 			const gate = r.settings.gate ? `  gate ${r.settings.gate}` : "";
 			const inline = r.settings.inlineSuggestions ? "  inline suggestions" : "";
-			return `${r.githubFullName}  ${state}${rounds}${botCap}${gate}${inline}${r.settings.panelId ? `  panel ${r.settings.panelId}` : ""}${hook}`;
+			return `${r.githubFullName}  ${state}${rounds}${botCap}${stepBack}${gate}${inline}${r.settings.panelId ? `  panel ${r.settings.panelId}` : ""}${hook}`;
 		})
 		.join("\n");
 }

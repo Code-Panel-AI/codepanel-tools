@@ -343,6 +343,7 @@ export class CodePanelClient {
 		autoReview?: boolean;
 		maxAutoRounds?: number | null;
 		botMaxRounds?: number | null;
+		stepBackAfterRounds?: number | null;
 		inlineSuggestions?: boolean;
 		panelId?: string | null;
 		gate?: GateLevel;

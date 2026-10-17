@@ -109,6 +109,39 @@ test("the text output prints the server's nextAction and lists payload.findings 
 	expect(text).toContain("F1 [warning] a.ts:3 — m  (open, id f1)");
 });
 
+test("the payload's step-back block is a line after Next, with how to turn it off", () => {
+	const stepBack = {
+		rounds: 4,
+		threshold: 3,
+		totalFindings: 5,
+		findingsAfterRound1: 3,
+		reason: "reconsider the approach",
+	};
+	const review = {
+		found: true,
+		status: "complete",
+		round: 4,
+		rounds: { completed: 4, perPr: false, running: false },
+		open: { critical: 0, warning: 0, suggestion: 0 },
+		gate: { level: "off", blocking: false, unanswered: [] },
+		findings: [],
+		payload: {
+			verdict: "ready",
+			blockedBy: [],
+			verdictReason: null,
+			nextRound: "will-run-on-push",
+			nextAction: { action: "done", refs: [], reason: "nothing blocks" },
+			stepBack,
+		},
+	} as unknown as ReviewSnapshot;
+	const text = formatReview(review);
+	expect(text).toContain(
+		"Step back: round 4, 3 of 5 findings first reported after round 1; reconsider the approach.",
+	);
+	expect(text).toContain("--step-back-after-rounds 0");
+	expect(text.indexOf("Next:")).toBeLessThan(text.indexOf("Step back:"));
+});
+
 test("without a nextAction (an older server) the text output has no Next line", () => {
 	const review = {
 		found: true,
@@ -153,6 +186,20 @@ test("ask exits 0 when answered, 1 when it failed, 3 while pending", () => {
 	expect(exitCodeFor(command, question("answered"))).toBe(REVIEW_EXIT.done);
 	expect(exitCodeFor(command, question("failed"))).toBe(REVIEW_EXIT.failed);
 	expect(exitCodeFor(command, question("pending"))).toBe(REVIEW_EXIT.timeout);
+});
+
+test("repos says when the step-back notice starts, and off for 0", () => {
+	const { command } = parseArgs(["repos"]);
+	const repo = (stepBackAfterRounds?: number) => ({
+		githubFullName: "o/r",
+		isActive: true,
+		webhookId: "1",
+		settings: { autoReview: true, stepBackAfterRounds },
+	});
+	const text = format(command, [repo(0), repo(4), repo()]).split("\n");
+	expect(text[0]).toContain("step back off");
+	expect(text[1]).toContain("step back from round 4");
+	expect(text[2]).not.toContain("step back");
 });
 
 test("a pending answer says what a CLI user can do, without implying a rerun resumes it", () => {

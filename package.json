@@ -1,7 +1,21 @@
 {
 	"name": "codepanel",
 	"version": "0.3.0",
-	"description": "CodePanel's CLI, local MCP server and coding-agent plugin",
+	"description": "Agent-to-agent AI pull request review: a panel of models reviews the PR, then your coding agent reads each finding over MCP, fixes or rebuts it, and rates it.",
+	"keywords": [
+		"code-review",
+		"ai-code-review",
+		"agentic-code-review",
+		"pull-requests",
+		"github",
+		"mcp",
+		"mcp-server",
+		"ai-agents",
+		"agent-to-agent",
+		"claude-code",
+		"codex",
+		"cursor"
+	],
 	"license": "MIT",
 	"type": "module",
 	"homepage": "https://codepanel.ai/docs/cli",

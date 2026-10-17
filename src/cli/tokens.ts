@@ -40,6 +40,7 @@ const VALUE_FLAGS = new Set([
 	"role",
 	"scope",
 	"scopes",
+	"step-back-after-rounds",
 	"sha",
 	"status",
 	"switches",

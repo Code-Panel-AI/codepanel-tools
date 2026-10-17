@@ -63,6 +63,7 @@ export type Repo = {
 			| undefined;
 		maxAutoRounds?: number | undefined;
 		botMaxRounds?: number | undefined;
+		stepBackAfterRounds?: number | undefined;
 		modelOverrides?: string[] | undefined;
 		panelId?: Id<"reviewPanels"> | undefined;
 		agentFiles?: boolean | undefined;
@@ -177,6 +178,20 @@ export type ReviewSnapshot = {
 							refs: string[];
 					  }
 					| undefined;
+				stepBack?:
+					| {
+							reason: string;
+							action: "reconsider-approach";
+							rounds: number;
+							threshold: number;
+							totalFindings: number;
+							findingsAfterRound1: number;
+							basis: "first-reported-after-round-1";
+							setting: "stepBackAfterRounds";
+							offValue: 0;
+					  }
+					| null
+					| undefined;
 				reviewedSha?: string | null | undefined;
 				prHeadSha?: string | null | undefined;
 				suppressed?:
@@ -233,7 +248,7 @@ export type ReviewSnapshot = {
 					waiting: string | null;
 				}[];
 				findings: {
-					state?: "new" | "resolved" | "open" | "dismissed" | undefined;
+					state?: "new" | "resolved" | "dismissed" | "open" | undefined;
 					source?: "reviewers" | "orchestrator" | undefined;
 					lastSeenRound?: number | undefined;
 					answered?: boolean | undefined;
@@ -284,20 +299,26 @@ export type ReviewSnapshot = {
 					source: "api" | "pr-body";
 				} | null;
 				linkedIssues: string[];
+				verdict: "ready" | "blocked" | "needs-review";
 				round: number | null;
 				headSha: string | null;
 				ci: { pending: string[]; failed: string[]; passed: string[]; annotations: number } | null;
 				schemaVersion: number;
 				inProgress: boolean;
 				counts: { critical: number; warning: number; suggestion: number; open: number };
-				verdict: "ready" | "blocked" | "needs-review";
 				blockedBy: string[];
 				verdictReason: string | null;
 				nextRound: "will-run-on-push" | "cap-reached" | "disabled";
 		  }
 		| undefined;
+	gate: {
+		status?: "posted" | "missing_permission" | "refused" | undefined;
+		level: "all" | "off" | "critical" | "warning";
+		blocking: boolean;
+		unanswered: string[];
+	};
 	findings: {
-		state?: "new" | "resolved" | "open" | "dismissed" | undefined;
+		state?: "new" | "resolved" | "dismissed" | "open" | undefined;
 		source?: "reviewers" | "orchestrator" | undefined;
 		suggestion?: string | undefined;
 		line?: number | undefined;
@@ -310,12 +331,6 @@ export type ReviewSnapshot = {
 		agentNames: string[];
 		answered: boolean;
 	}[];
-	gate: {
-		status?: "posted" | "missing_permission" | "refused" | undefined;
-		level: "all" | "off" | "critical" | "warning";
-		blocking: boolean;
-		unanswered: string[];
-	};
 	found: boolean;
 	rounds: {
 		limit?: number | undefined;
@@ -453,7 +468,7 @@ export type FindingList = {
 		source: FindingSource;
 		firstSeenRound: number;
 		lastSeenRound: number;
-		state: "new" | "resolved" | "open" | "dismissed";
+		state: "new" | "resolved" | "dismissed" | "open";
 		answered: boolean;
 		rated: boolean;
 	}[];
@@ -815,7 +830,7 @@ export type BudgetState = {
 		heldUsd: number | null;
 		remainingUsd: number | null;
 	};
-	enforced: boolean;
+	enforced: true;
 };
 
 export type BudgetChange = {
@@ -845,7 +860,7 @@ export type BudgetChange = {
 			heldUsd: number | null;
 			remainingUsd: number | null;
 		};
-		enforced: boolean;
+		enforced: true;
 	};
 	after: {
 		repo?:
@@ -873,7 +888,7 @@ export type BudgetChange = {
 			heldUsd: number | null;
 			remainingUsd: number | null;
 		};
-		enforced: boolean;
+		enforced: true;
 	};
 	changed: ("repo" | "account")[];
 };

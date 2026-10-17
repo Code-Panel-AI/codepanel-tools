@@ -1,3 +1,4 @@
 [test]
-# Keeps tests off the browser, the network and the saved login; see the file.
+# Keeps tests off the browser, the network and the saved login, and gives
+# them the content pages Vite would; see each file.
 preload = ["./test/preload.ts"]

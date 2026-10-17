@@ -36,8 +36,19 @@ const botMaxRounds = z
 	.describe(
 		"Rounds in all a bot commenting /rounds may extend a pull request to (0-50; 0 stops bots adding rounds), or null for the default of 5. Owners, members and collaborators are not held to it.",
 	);
+/** The round from which reviews carry the step-back notice. */
+const stepBackAfterRounds = z
+	.number()
+	.int()
+	.min(0)
+	.max(50)
+	.nullable()
+	.optional()
+	.describe(
+		"The round from which the review carries a step-back notice (payload.stepBack) advising to reconsider the approach rather than patch the latest finding (0-50; 0 turns it off), or null for the default of 3. It stops nothing and never changes the gate.",
+	);
 /** A repository's round settings, as update_repo_settings takes them. */
-export const roundSettings = { maxAutoRounds, botMaxRounds };
+export const roundSettings = { maxAutoRounds, botMaxRounds, stepBackAfterRounds };
 export const panelId = z.string().describe("Panel id, from get_panel");
 
 /** What the server hands a running tool besides its arguments. */
@@ -46,6 +57,9 @@ export interface ToolContext {
 	signal?: AbortSignal;
 	/** Lets a long call tell the client it is still alive. */
 	progress?: (message: string) => void;
+	/** The clock a waiting tool polls by. Injected in tests. */
+	sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
+	now?: () => number;
 }
 
 export interface ToolDef {

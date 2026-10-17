@@ -40,6 +40,11 @@ For every open finding:
 
 Push the fixes. Do not trigger extra reviews: every push is reviewed on its own. To ask for another round without a push, comment `/review` on the pull request, and do it once, never in a loop.
 
+Every push starts another round, and a round can raise new findings on the code you just wrote. So:
+
+- **Do not push a commit for suggestions alone.** When only suggestions are open (`nextAction` is `rate`, and the comment says "Only suggestions are open"), rate each one instead: `up fixed` if you fold the fix into a commit you were pushing anyway, otherwise `down not-worth-fixing <why>` or `up deferred <where>`.
+- **Step back when the comment says so.** From the repository's `stepBackAfterRounds` round (3 by default) the comment starts a line with "**Step back:**" and `get_review` returns `payload.stepBack` with the round count and how many findings were first reported after round 1. Before the next push, reconsider the approach as a whole (the design, or splitting the change) rather than patching the latest finding. It is advice only: it does not block, and the gate still decides when you are done.
+
 Control how many more automatic rounds the pull request gets with a `/rounds` line, alone or under your `/feedback` lines:
 
 ```text

@@ -1,14 +1,38 @@
 {
 	"name": "codepanel",
-	"owner": { "name": "CodePanel", "url": "https://github.com/Code-Panel-AI" },
-	"description": "AI pull request review with a panel of models",
+	"owner": {
+		"name": "CodePanel",
+		"url": "https://github.com/Code-Panel-AI"
+	},
+	"description": "Agent-to-agent AI code review for GitHub pull requests: a panel of models reviews, your coding agent fixes or rates each finding",
 	"plugins": [
 		{
 			"name": "codepanel",
 			"source": "./plugins/codepanel",
-			"description": "Work with CodePanel's pull request reviews: read findings, fix or rebut them, rate them, and set up a repository's review rules.",
+			"description": "Agent-to-agent AI pull request review: a panel of models reviews the PR, then your coding agent reads each finding over MCP, fixes or rebuts it, and rates it.",
 			"category": "code-review",
-			"tags": ["code-review", "pull-requests", "github", "mcp"]
+			"tags": [
+				"code-review",
+				"ai-code-review",
+				"pull-requests",
+				"github",
+				"mcp",
+				"ai-agents"
+			],
+			"keywords": [
+				"code-review",
+				"ai-code-review",
+				"agentic-code-review",
+				"pull-requests",
+				"github",
+				"mcp",
+				"mcp-server",
+				"ai-agents",
+				"agent-to-agent",
+				"claude-code",
+				"codex",
+				"cursor"
+			]
 		}
 	]
 }

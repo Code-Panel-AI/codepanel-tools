@@ -13,6 +13,7 @@ which take precedence.
   codepanel repos connect <owner/name>
   codepanel repos disconnect <owner/name>
   codepanel repos set <owner/name> [--auto-review on|off] [--max-auto-rounds <n>|none] [--bot-max-rounds <n>|default] [--panel <id>|none]
+                      [--step-back-after-rounds <n>|default]
                       [--gate off|critical|warning|all] [--inline-suggestions on|off] [--agent-files on|off]
                       [--switches NAME=on|off|default,...]
   codepanel repos switches <owner/name>

@@ -77,7 +77,7 @@ export const TOOLS: ToolDef[] = [
 		name: "update_repo_settings",
 		title: "Update repository settings",
 		description:
-			"Turn automatic review on or off for a repository, cap its automatic review rounds per pull request, set how far bots may extend them, pin it to a specific panel (null for the default), post inline suggestion comments on the diff (inlineSuggestions), choose which findings must be answered before its CodePanel commit status passes (gate), choose whether reviews read its AGENTS.md and CLAUDE.md, or set its own review switches (reviewSwitches).",
+			"Turn automatic review on or off for a repository, cap its automatic review rounds per pull request, set how far bots may extend them, set the round from which reviews advise stepping back (stepBackAfterRounds, 0 off), pin it to a specific panel (null for the default), post inline suggestion comments on the diff (inlineSuggestions), choose which findings must be answered before its CodePanel commit status passes (gate), choose whether reviews read its AGENTS.md and CLAUDE.md, or set its own review switches (reviewSwitches).",
 		input: {
 			repo,
 			autoReview: z.boolean().optional(),

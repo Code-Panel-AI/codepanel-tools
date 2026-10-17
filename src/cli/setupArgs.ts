@@ -21,6 +21,7 @@ export type SetupCommand =
 			autoReview?: boolean;
 			maxAutoRounds?: number | null;
 			botMaxRounds?: number | null;
+			stepBackAfterRounds?: number | null;
 			panelId?: string | null;
 			gate?: GateLevel;
 			agentFiles?: boolean;
@@ -118,6 +119,7 @@ export function parseRepos(
 				autoReview: onOff("auto-review", r.flag("auto-review")),
 				maxAutoRounds: roundsFlag(r, "max-auto-rounds", 1, "none"),
 				botMaxRounds: roundsFlag(r, "bot-max-rounds", 0, "default"),
+				stepBackAfterRounds: roundsFlag(r, "step-back-after-rounds", 0, "default"),
 				panelId: panel === "none" ? null : panel,
 				gate: gateLevel(r.flag("gate")),
 				inlineSuggestions: onOff("inline-suggestions", r.flag("inline-suggestions")),

@@ -31,6 +31,15 @@ describe("parseArgs", () => {
 		expect(() => cmd("repos set acme/app --bot-max-rounds 51")).toThrow("--bot-max-rounds");
 		const blank = () => parseArgs(["repos", "set", "acme/app", "--bot-max-rounds", " "]);
 		expect(blank).toThrow("--bot-max-rounds");
+		expect(cmd("repos set acme/app --step-back-after-rounds 0")).toMatchObject({
+			stepBackAfterRounds: 0,
+		});
+		expect(cmd("repos set acme/app --step-back-after-rounds default")).toMatchObject({
+			stepBackAfterRounds: null,
+		});
+		expect(() => cmd("repos set acme/app --step-back-after-rounds 51")).toThrow(
+			"--step-back-after-rounds",
+		);
 		expect(cmd("repos set acme/app --inline-suggestions on")).toMatchObject({
 			inlineSuggestions: true,
 		});

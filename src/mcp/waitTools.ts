@@ -24,6 +24,8 @@ export const timeoutSeconds = z
 export function waitOptions(context: ToolContext | undefined, seconds?: number): WaitOptions {
 	return {
 		signal: context?.signal,
+		sleep: context?.sleep,
+		now: context?.now,
 		timeoutMs: seconds === undefined ? undefined : seconds * MS,
 		onPoll: (status) => context?.progress?.(status.activity ?? status.status ?? "waiting"),
 	};

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Code-Panel-AI/codepanel",
+  "title": "CodePanel",
+  "description": "Agent-to-agent AI code review: a panel of models reviews a PR and your agent fixes or rates it.",
+  "version": "0.3.0",
+  "websiteUrl": "https://codepanel.ai/docs/mcp-server",
+  "repository": {
+    "url": "https://github.com/Code-Panel-AI/codepanel-tools",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://codepanel.ai/mcp"
+    }
+  ]
+}

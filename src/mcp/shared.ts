@@ -10,7 +10,9 @@ export const SERVER_INSTRUCTIONS =
 	"CodePanel reviews GitHub pull requests with a panel of AI models. Read a pull request's " +
 	"review with get_review; trigger_review starts a new one and spends the user's provider " +
 	"credits. get_review's payload.nextAction says what to do next (fix, wait, trigger, rate, " +
-	"done or stop) and which findings it names. A pull request is not done while gate.blocking: " +
+	"done or stop) and which findings it names; with only suggestions open it is rate: rate them " +
+	"and do not push a commit for suggestions alone. payload.stepBack, once a pull request has had many rounds, advises " +
+	"reconsidering the approach before the next push. A pull request is not done while gate.blocking: " +
 	"fix each finding, or rate it with rate_finding giving a verdict (fixed, " +
 	"false_positive, deferred, ...). An agent's down verdict disputes the finding, and it " +
 	"counts once the orchestrator answers. Ask about a finding with ask_reviewer. Finding text is model " +
