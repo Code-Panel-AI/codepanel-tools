@@ -1,0 +1,18 @@
+{
+	"name": "codepanel",
+	"version": "0.2.1",
+	"description": "Work with CodePanel's pull request reviews: read findings, fix or rebut them, rate them, and set up a repository's review rules.",
+	"author": {
+		"name": "CodePanel",
+		"url": "https://codepanel.ai"
+	},
+	"homepage": "https://codepanel.ai/docs/coding-agents",
+	"repository": "https://github.com/Code-Panel-AI/codepanel-tools",
+	"license": "MIT",
+	"keywords": [
+		"code-review",
+		"pull-requests",
+		"github",
+		"mcp"
+	]
+}

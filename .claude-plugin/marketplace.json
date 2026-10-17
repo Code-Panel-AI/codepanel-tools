@@ -1,0 +1,14 @@
+{
+	"name": "codepanel",
+	"owner": { "name": "CodePanel", "url": "https://github.com/Code-Panel-AI" },
+	"description": "AI pull request review with a panel of models",
+	"plugins": [
+		{
+			"name": "codepanel",
+			"source": "./plugins/codepanel",
+			"description": "Work with CodePanel's pull request reviews: read findings, fix or rebut them, rate them, and set up a repository's review rules.",
+			"category": "code-review",
+			"tags": ["code-review", "pull-requests", "github", "mcp"]
+		}
+	]
+}

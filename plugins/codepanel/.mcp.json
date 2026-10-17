@@ -1,0 +1,8 @@
+{
+	"mcpServers": {
+		"codepanel": {
+			"type": "http",
+			"url": "https://codepanel.ai/mcp"
+		}
+	}
+}
