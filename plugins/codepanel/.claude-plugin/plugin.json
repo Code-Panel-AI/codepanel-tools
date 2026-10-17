@@ -1,6 +1,6 @@
 {
 	"name": "codepanel",
-	"version": "0.2.1",
+	"version": "0.2.2",
 	"description": "Work with CodePanel's pull request reviews: read findings, fix or rebut them, rate them, and set up a repository's review rules.",
 	"author": {
 		"name": "CodePanel",

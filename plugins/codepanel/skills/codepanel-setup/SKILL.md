@@ -1,7 +1,7 @@
 ---
 name: codepanel-setup
 description: Set up a repository to work well with CodePanel, the AI pull request reviewer. Writes .codepanel/rules.md from the repository's own agent instructions and teaches its agents CodePanel's review loop, in one pull request. Use when asked to set up, configure or onboard CodePanel in a repository.
-license: Apache-2.0
+license: MIT
 disable-model-invocation: true
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: codepanel
 description: Act on CodePanel's AI review of a GitHub pull request. Use when a pull request has a "CodePanel review" comment, when asked to address review findings (F1, F2, ...), or after pushing to a pull request in a repository CodePanel reviews. Reads the findings, checks each against the code, fixes or rebuts it, and rates every finding with /feedback.
-license: Apache-2.0
+license: MIT
 ---
 
 # Working with CodePanel reviews

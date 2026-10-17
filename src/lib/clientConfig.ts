@@ -9,7 +9,8 @@ const TOKEN_PATTERN = /^cpk_[A-Za-z0-9_-]{43}$/;
 /**
  * The API of the hosted service, codepanel.ai: its Convex deployment's site
  * URL, which serves /api/v1. `codepanel login` uses it when nothing names a
- * deployment; a self-hosted one is chosen with --url or CODEPANEL_URL.
+ * deployment; another, such as a development one, is chosen with --url or
+ * CODEPANEL_URL.
  */
 export const HOSTED_API_URL = "https://zealous-schnauzer-450.convex.site";
 /**

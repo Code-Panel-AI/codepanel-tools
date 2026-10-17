@@ -142,7 +142,7 @@ describe("a link the page could not resolve", () => {
 		expect(await loadCredentials(env)).toBeNull();
 	});
 
-	test("a self-hosted deployment linking to its own site is fine", async () => {
+	test("a deployment other than codepanel.ai linking to its own site is fine", async () => {
 		const { code, openedLinks } = await run(true, {
 			url: "https://dev-deployment-1.convex.site",
 			site: "https://review.example.com",

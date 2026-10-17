@@ -1,7 +1,7 @@
 /** The text `codepanel help` prints, kept apart from the parser. */
 export const USAGE = `codepanel — operate CodePanel from the terminal
 
-Sign in with "codepanel login" (codepanel.ai; --url for a self-hosted deployment), or set
+Sign in with "codepanel login" (codepanel.ai; --url for another deployment), or set
 CODEPANEL_URL (your .convex.site URL) and CODEPANEL_TOKEN (cpk_… from Settings → API tokens),
 which take precedence.
 
