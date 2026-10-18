@@ -32,7 +32,8 @@ export const TOOLS: ToolDef[] = [
 	tool({
 		name: "whoami",
 		title: "Show current account",
-		description: "The GitHub account and scopes of the configured CodePanel API token.",
+		description:
+			"The GitHub account and scopes of the configured CodePanel API token, and its subscription: when subscription.active is false, reviews are refused until the person subscribes at subscription.nextAction.",
 		input: {},
 		writes: false,
 		run: (c) => c.me(),

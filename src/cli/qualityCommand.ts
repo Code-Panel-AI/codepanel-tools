@@ -1,9 +1,11 @@
 /**
  * `codepanel quality owner/name [--days n]`: a repository's verified review
- * precision per model and role (GET /api/v1/quality). --json prints every
- * segment; the text form prints the rows an agent or person compares first.
+ * precision per model and role, then how the review loop converges
+ * (GET /api/v1/quality). --json prints every segment; the text form prints the
+ * rows an agent or person compares first.
  */
 import type { CodePanelClient, Quality } from "../lib/client";
+import { formatConvergence } from "./convergenceText";
 import { repoArg } from "./knowledgeArgs";
 import { UsageError } from "./usageError";
 
@@ -52,5 +54,6 @@ export function formatQuality(q: Quality): string {
 		...q.byModel.map(line),
 		"By role:",
 		...q.byRole.map(line),
+		...formatConvergence(q.convergence),
 	].join("\n");
 }

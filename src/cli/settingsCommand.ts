@@ -1,9 +1,12 @@
 /**
- * `codepanel budget …` (GET and POST /api/v1/budget) and a repository's
+ * `codepanel budget …` (GET and POST /api/v1/budget), `codepanel
+ * auto-reload …` (GET and POST /api/v1/auto-reload) and a repository's
  * review switches (`repos switches`, `repos set --switches`). The text
  * form says what changed; --json prints the whole state before and after.
  */
 import {
+	type AutoReload,
+	type AutoReloadChange,
 	type BudgetChange,
 	type BudgetState,
 	type CodePanelClient,
@@ -12,7 +15,7 @@ import {
 	type ReviewSwitchesUpdate,
 	type ReviewSwitchStates,
 } from "../lib/client";
-import { type Reader, repoArg } from "./tokens";
+import { noExtra, type Reader, repoArg } from "./tokens";
 import { UsageError } from "./usageError";
 
 export type SettingsCommand =
@@ -23,7 +26,15 @@ export type SettingsCommand =
 			repo?: string;
 			capUsd?: number | null;
 	  }
-	| { kind: "repos.switches"; repo: string };
+	| { kind: "repos.switches"; repo: string }
+	| { kind: "autoReload" }
+	| {
+			kind: "autoReload.set";
+			enabled?: boolean;
+			thresholdUsd?: number;
+			packUsd?: number;
+			monthlyCapUsd?: number;
+	  };
 
 function amount(flag: string, value: string): number {
 	const n = value.trim() === "" ? Number.NaN : Number(value);
@@ -63,6 +74,31 @@ export function parseBudget(positionals: string[], r: Reader): SettingsCommand {
 	return command;
 }
 
+function optionalAmount(r: Reader, flag: string): number | undefined {
+	const value = r.flag(flag);
+	return value === undefined ? undefined : amount(flag, value);
+}
+
+const AUTO_RELOAD_SUBCOMMANDS = ["on", "off", "set"];
+
+/** `auto-reload`, or `auto-reload on|off|set [--threshold <usd>] [--pack <usd>] [--cap <usd>]`. */
+export function parseAutoReload(positionals: string[], r: Reader): SettingsCommand {
+	const [sub, ...rest] = positionals;
+	noExtra(rest);
+	if (sub === undefined) return { kind: "autoReload" };
+	if (!AUTO_RELOAD_SUBCOMMANDS.includes(sub))
+		throw new UsageError("auto-reload takes on, off or set");
+	const values = {
+		thresholdUsd: optionalAmount(r, "threshold"),
+		packUsd: optionalAmount(r, "pack"),
+		monthlyCapUsd: optionalAmount(r, "cap"),
+	};
+	if (sub === "set" && Object.values(values).every((v) => v === undefined)) {
+		throw new UsageError("auto-reload set needs --threshold, --pack or --cap");
+	}
+	return { kind: "autoReload.set", enabled: sub === "set" ? undefined : sub === "on", ...values };
+}
+
 const SWITCH_VALUES: Record<string, boolean | null> = { on: true, off: false, default: null };
 
 /** `--switches NAME=on,NAME=off,NAME=default`. */
@@ -94,6 +130,12 @@ export function executeSettings(command: SettingsCommand, client: CodePanelClien
 		}
 		case "repos.switches":
 			return client.getRepoSwitches(command.repo);
+		case "autoReload":
+			return client.getAutoReload();
+		case "autoReload.set": {
+			const { kind: _, ...args } = command;
+			return client.setAutoReload(args);
+		}
 	}
 }
 
@@ -117,6 +159,25 @@ function budgetLines(s: BudgetState): string[] {
 		`Next round: ${r.review.status}, ${r.review.remainingUsd === null ? "no limit applies" : `${usd(r.review.remainingUsd)} left`}${r.review.limitedBy ? ` (${r.review.limitedBy} limit)` : ""}`,
 	);
 	if (r.review.refusal) lines.push(`Refused: ${r.review.refusal}`);
+	return lines;
+}
+
+function autoReloadLines(s: AutoReload): string[] {
+	const pending = s.pendingSince === null ? "" : ` since ${new Date(s.pendingSince).toISOString()}`;
+	const last =
+		s.lastReloadAt === null ? "" : `; last reload ${new Date(s.lastReloadAt).toISOString()}`;
+	const lines = [
+		`Auto-reload: ${s.status}${s.offReason ? ` (${s.offReason})` : ""}${pending}`,
+		`Below ${usd(s.thresholdUsd)}, buy ${usd(s.packUsd)} of credits (${usd(s.chargeUsd)} with the fee); at most ${usd(s.monthlyCapUsd)} a month`,
+		`${s.month}: reloaded ${usd(s.reloadedUsd)}${last}`,
+	];
+	// Absent from a server older than this CLI, hence the truthiness check.
+	if (s.retryAfter) {
+		lines.push(
+			`Stripe was unavailable; the next try waits until ${new Date(s.retryAfter).toISOString()}`,
+		);
+	}
+	if (s.message) lines.push(s.message);
 	return lines;
 }
 
@@ -148,6 +209,14 @@ export function formatSettings(command: SettingsCommand, result: unknown): strin
 			return switchLines((result as { reviewSwitches: ReviewSwitchStates }).reviewSwitches).join(
 				"\n",
 			);
+		case "autoReload":
+			return autoReloadLines(result as AutoReload).join("\n");
+		case "autoReload.set": {
+			const { before, after } = result as AutoReloadChange;
+			return ["Before:", ...autoReloadLines(before), "After:", ...autoReloadLines(after)].join(
+				"\n",
+			);
+		}
 	}
 }
 

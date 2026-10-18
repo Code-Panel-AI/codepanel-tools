@@ -10,7 +10,7 @@ import { parseHandoff } from "./handoffArgs";
 import { parseRepoCommand } from "./learningArgs";
 import { parseQuality } from "./qualityCommand";
 import { parseFindings, parseReview, parseRounds, parseSessions } from "./reviewArgs";
-import { parseBudget } from "./settingsCommand";
+import { parseAutoReload, parseBudget } from "./settingsCommand";
 import { parsePanel, parseRepos } from "./setupArgs";
 import { noExtra, prArg, Reader, tokenize } from "./tokens";
 import { UsageError } from "./usageError";
@@ -71,6 +71,8 @@ function parseCommand(positionals: string[], r: Reader): Command {
 			// `budget set` rejects its own extras with a clearer message.
 			noExtra(rest[0] === "set" ? [] : rest.slice(1));
 			return parseBudget(rest, r);
+		case "auto-reload":
+			return parseAutoReload(rest, r);
 		default:
 			return parseRepoCommand(group, rest, r);
 	}

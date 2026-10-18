@@ -5,6 +5,9 @@
  */
 import type {
 	ApiErrorCode,
+	AutoReload,
+	AutoReloadChange,
+	AutoReloadUpdate,
 	BudgetChange,
 	BudgetState,
 	ConnectableRepo,
@@ -360,6 +363,9 @@ export class CodePanelClient {
 		repo?: string;
 		capUsd?: number | null;
 	}) => this.request<BudgetChange>("POST", "/budget", args);
+	getAutoReload = () => this.request<AutoReload>("GET", "/auto-reload");
+	setAutoReload = (args: AutoReloadUpdate) =>
+		this.request<AutoReloadChange>("POST", "/auto-reload", args);
 
 	listPanels = () => this.request<Panel[]>("GET", "/panels");
 	listModels = () => this.request<Model[]>("GET", "/models");

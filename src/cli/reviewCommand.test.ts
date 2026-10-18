@@ -107,6 +107,25 @@ test("the text output prints the server's nextAction and lists payload.findings 
 	const text = formatReview(review);
 	expect(text).toContain("Next: fix F1 (fix it).");
 	expect(text).toContain("F1 [warning] a.ts:3 — m  (open, id f1)");
+	expect(text).not.toContain("also at");
+
+	const [only] = (review.payload?.findings ?? []) as object[];
+	const listed = {
+		...review,
+		payload: {
+			...review.payload,
+			findings: [
+				{
+					...only,
+					instances: [
+						{ file: "b.ts", line: 9 },
+						{ file: "c.ts", line: null },
+					],
+				},
+			],
+		},
+	} as unknown as ReviewSnapshot;
+	expect(formatReview(listed)).toContain("(open, id f1)\n    also at: b.ts:9, c.ts");
 });
 
 test("the payload's step-back block is a line after Next, with how to turn it off", () => {

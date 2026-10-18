@@ -19,6 +19,8 @@ which take precedence.
   codepanel repos switches <owner/name>
   codepanel budget [owner/name]
   codepanel budget set [--monthly <usd>|default|none] [--repo <owner/name> --cap <usd>|none]
+  codepanel auto-reload
+  codepanel auto-reload on|off|set [--threshold <usd>] [--pack <usd>] [--cap <usd>]
   codepanel panel
   codepanel models
   codepanel panel roles
@@ -63,9 +65,14 @@ learn records a repo learning; an agent's (--agent, or $CODEPANEL_AGENT) waits f
 another identity on another pull request. learning L3 up confirms one, down turns it off.
 quality prints verified precision per model and role (default 30 days, at most 90): only verdicts an
 author agent cannot give itself count; "addressed by commit" is shown apart because complying inflates it.
+It then prints convergence over the same window: rounds per merged pull request, how soon the gate went green,
+and the rounds that ran after it was green (re-blocked when one reported a new warning), by what started them.
 budget prints the account's monthly budget and, given a repository, its own cap, with this month's
 own-key spend, held and left; budget set changes them and prints both before and after. A cap is checked
 as well as the account budget; --cap none leaves only the account budget.
+auto-reload prints credits auto-reload; on, off and set change it (--pack 25|50|100|250, --cap at least
+the pack) and print it before and after. While on, a balance below the threshold charges your saved card
+for the pack plus the purchase fee, up to the cap's worth of credits a month.
 repos switches prints the review switches a repository can set for itself (REVIEW_CACHEABLE_PROMPTS,
 REVIEW_REVIEWER_TOOLS, REVIEW_PRECISION_RULES, REVIEW_CHANGED_LINES; the first is on by default, the
 rest off); repos set --switches sets them, default following the deployment again.

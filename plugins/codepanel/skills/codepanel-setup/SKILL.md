@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Set up a repository for CodePanel
 
-Before starting, check that the repository is connected to CodePanel and has a working provider key: with the CodePanel MCP tools, `list_repos` lists it and `get_key_status` shows a working key; without them, a pull request already has a `## CodePanel review` comment. If not, set CodePanel up first with the prompt in https://codepanel.ai/docs/quickstart, which stops for the steps only the user can do; an agent cannot add provider keys or change the monthly budget.
+Before starting, check that the repository is connected to CodePanel, the account can run reviews and it has a working provider key: with the CodePanel MCP tools, `list_repos` lists it, `whoami` shows `subscription.active` and `get_key_status` shows a working key; without them, a pull request already has a `## CodePanel review` comment. If not, set CodePanel up first with the prompt in https://codepanel.ai/docs/quickstart, which stops for the steps only the user can do; an agent cannot subscribe, add provider keys or change the monthly budget.
 
 Then do the following. It is the same prompt as https://codepanel.ai/docs/agent-setup.
 

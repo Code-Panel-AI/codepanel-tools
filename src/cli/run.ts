@@ -31,6 +31,7 @@ import { executeKnowledge, formatKnowledge } from "./knowledgeCommand";
 import { executeLearning, formatLearning } from "./learningCommand";
 import { executeQuality, formatQuality } from "./qualityCommand";
 import {
+	alsoAt,
 	type ExecuteOptions,
 	executeReview,
 	formatReview,
@@ -142,6 +143,8 @@ export async function execute(
 		case "budget":
 		case "budget.set":
 		case "repos.switches":
+		case "autoReload":
+		case "autoReload.set":
 			return executeSettings(command, client);
 		case "feedback": {
 			const { kind: _, agent, ...args } = command;
@@ -268,7 +271,7 @@ function formatFindings(list: FindingList): string {
 			const state = f.dismissed ? "dismissed" : f.status;
 			const fix = f.suggestion ? `\n    fix: ${f.suggestion.split("\n").join("\n    ")}` : "";
 			const name = f.ref ? `${f.ref} ` : "";
-			return `${name}[${f.severity}] ${loc(f)} — ${f.message}  (${state}, id ${f.id})${fix}`;
+			return `${name}[${f.severity}] ${loc(f)} — ${f.message}  (${state}, id ${f.id})${alsoAt(f.instances ?? [])}${fix}`;
 		})
 		.join("\n");
 }
@@ -358,6 +361,8 @@ export function format(command: Command, result: unknown): string {
 		case "budget":
 		case "budget.set":
 		case "repos.switches":
+		case "autoReload":
+		case "autoReload.set":
 			return formatSettings(command, result);
 		case "repos.set":
 			return formatRepoSet(result, command.reviewSwitches !== undefined);

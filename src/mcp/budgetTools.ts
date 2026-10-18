@@ -1,6 +1,7 @@
 /**
  * The monthly limits on own-key spend: the account budget across every
- * repository and a repository's own cap (GET and POST /api/v1/budget).
+ * repository and a repository's own cap (GET and POST /api/v1/budget); and
+ * credits auto-reload (GET and POST /api/v1/auto-reload).
  */
 import { z } from "zod";
 import { repo, tool } from "./define";
@@ -29,5 +30,32 @@ export const BUDGET_TOOLS = [
 		},
 		writes: true,
 		run: (c, a) => c.setBudget(a),
+	}),
+	tool({
+		name: "get_auto_reload",
+		title: "Get credits auto-reload",
+		description:
+			"Credits auto-reload: whether CodePanel charges the saved card for a credit pack when the credit balance falls below a threshold. status is off|on|pending (a charge running)|turned_off (by a failure: offReason card_declined|authentication_required|no_payment_method|payment_failed|disputed|stalled)|capped (this month's reloads reached monthlyCapUsd). With thresholdUsd, packUsd, chargeUsd (pack plus the purchase fee), monthlyCapUsd, reloadedUsd this month (UTC), lastReloadAt, and message: what to do next.",
+		input: {},
+		writes: false,
+		run: (c) => c.getAutoReload(),
+	}),
+	tool({
+		name: "set_auto_reload",
+		title: "Set credits auto-reload",
+		description:
+			"Turn credits auto-reload on or off, or change it. When on, a balance below thresholdUsd charges the saved card for packUsd of credits plus the purchase fee, at most monthlyCapUsd of credits per calendar month (UTC); a reload that would pass the cap is skipped, not split. Needs a subscription to turn on. First enable defaults: threshold $5, pack $25, cap $100. Turning it on with the balance already below the threshold charges at once. Needs the budget:write scope. Returns the settings before and after, as get_auto_reload.",
+		input: {
+			enabled: z.boolean().optional(),
+			thresholdUsd: amount.optional().describe("Reload when the balance falls below this"),
+			packUsd: amount
+				.optional()
+				.describe("Credits each reload buys: one of get_auto_reload's packOptionsUsd"),
+			monthlyCapUsd: amount
+				.optional()
+				.describe("Most credits reloads may buy per month; at least packUsd"),
+		},
+		writes: true,
+		run: (c, a) => c.setAutoReload(a),
 	}),
 ];

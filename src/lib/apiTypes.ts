@@ -250,6 +250,7 @@ export type ReviewSnapshot = {
 				findings: {
 					state?: "new" | "resolved" | "dismissed" | "open" | undefined;
 					source?: "reviewers" | "orchestrator" | undefined;
+					instances?: { file: string; line: number | null }[] | undefined;
 					lastSeenRound?: number | undefined;
 					answered?: boolean | undefined;
 					rated?: boolean | undefined;
@@ -471,6 +472,7 @@ export type FindingList = {
 		state: "new" | "resolved" | "dismissed" | "open";
 		answered: boolean;
 		rated: boolean;
+		instances: { file: string; line: number | null }[];
 	}[];
 };
 
@@ -569,6 +571,7 @@ export type Quality = {
 		reported: number;
 		verified: {
 			interval: { high: number; low: number } | null;
+			insufficientData: boolean;
 			truePositives: {
 				total: number;
 				disputesUpheld: number;
@@ -585,7 +588,6 @@ export type Quality = {
 			sample: number;
 			coverage: number;
 			precision: number | null;
-			insufficientData: boolean;
 		};
 		unverified: {
 			addressedByCommit: number;
@@ -604,14 +606,13 @@ export type Quality = {
 		};
 	}[];
 	days: number;
-	unattributed: number;
 	since: number;
-	minSample: number;
 	overall: {
 		key: string;
 		reported: number;
 		verified: {
 			interval: { high: number; low: number } | null;
+			insufficientData: boolean;
 			truePositives: {
 				total: number;
 				disputesUpheld: number;
@@ -628,7 +629,6 @@ export type Quality = {
 			sample: number;
 			coverage: number;
 			precision: number | null;
-			insufficientData: boolean;
 		};
 		unverified: {
 			addressedByCommit: number;
@@ -646,11 +646,14 @@ export type Quality = {
 			unverifiableDismissals: number;
 		};
 	};
+	unattributed: number;
+	minSample: number;
 	byRole: {
 		key: string;
 		reported: number;
 		verified: {
 			interval: { high: number; low: number } | null;
+			insufficientData: boolean;
 			truePositives: {
 				total: number;
 				disputesUpheld: number;
@@ -667,7 +670,6 @@ export type Quality = {
 			sample: number;
 			coverage: number;
 			precision: number | null;
-			insufficientData: boolean;
 		};
 		unverified: {
 			addressedByCommit: number;
@@ -690,6 +692,7 @@ export type Quality = {
 		reported: number;
 		verified: {
 			interval: { high: number; low: number } | null;
+			insufficientData: boolean;
 			truePositives: {
 				total: number;
 				disputesUpheld: number;
@@ -706,7 +709,6 @@ export type Quality = {
 			sample: number;
 			coverage: number;
 			precision: number | null;
-			insufficientData: boolean;
 		};
 		unverified: {
 			addressedByCommit: number;
@@ -729,6 +731,7 @@ export type Quality = {
 		reported: number;
 		verified: {
 			interval: { high: number; low: number } | null;
+			insufficientData: boolean;
 			truePositives: {
 				total: number;
 				disputesUpheld: number;
@@ -745,7 +748,6 @@ export type Quality = {
 			sample: number;
 			coverage: number;
 			precision: number | null;
-			insufficientData: boolean;
 		};
 		unverified: {
 			addressedByCommit: number;
@@ -768,6 +770,7 @@ export type Quality = {
 		reported: number;
 		verified: {
 			interval: { high: number; low: number } | null;
+			insufficientData: boolean;
 			truePositives: {
 				total: number;
 				disputesUpheld: number;
@@ -784,7 +787,6 @@ export type Quality = {
 			sample: number;
 			coverage: number;
 			precision: number | null;
-			insufficientData: boolean;
 		};
 		unverified: {
 			addressedByCommit: number;
@@ -802,6 +804,57 @@ export type Quality = {
 			unverifiableDismissals: number;
 		};
 	}[];
+} & {
+	convergence: {
+		pullRequests: number;
+		repo: string;
+		truncated: boolean;
+		days: number;
+		since: number;
+		minPullRequests: number;
+		overall: {
+			pullRequests: number;
+			key: string;
+			rounds: { empty: number; mean: number | null; p90: number | null; fiveOrMore: number | null };
+			insufficientData: boolean;
+			firstGreen: { afterRound1: number | null; meanRounds: number | null; never: number };
+			afterGreen: {
+				rounds: number;
+				shareOfRounds: number | null;
+				reBlocked: number;
+				reBlockedShare: number | null;
+				byTrigger: { trigger: string; rounds: number; reBlocked: number }[];
+			};
+			findingsByRound: {
+				findings: number;
+				round: string;
+				critical: number;
+				warning: number;
+				suggestion: number;
+			}[];
+		};
+		byPipeline: {
+			pullRequests: number;
+			key: string;
+			rounds: { empty: number; mean: number | null; p90: number | null; fiveOrMore: number | null };
+			insufficientData: boolean;
+			firstGreen: { afterRound1: number | null; meanRounds: number | null; never: number };
+			afterGreen: {
+				rounds: number;
+				shareOfRounds: number | null;
+				reBlocked: number;
+				reBlockedShare: number | null;
+				byTrigger: { trigger: string; rounds: number; reBlocked: number }[];
+			};
+			findingsByRound: {
+				findings: number;
+				round: string;
+				critical: number;
+				warning: number;
+				suggestion: number;
+			}[];
+		}[];
+	};
 };
 
 export type BudgetState = {
@@ -815,13 +868,12 @@ export type BudgetState = {
 					refusal: string | null;
 					status: "open" | "unlimited" | "reached" | "uncountable";
 					remainingUsd: number | null;
-					limitedBy: "repo" | "account" | null;
+					limitedBy: "account" | "repo" | null;
 				};
 				heldUsd: number | null;
 				remainingUsd: number | null;
 		  }
 		| undefined;
-	month: string;
 	account: {
 		status: "open" | "unlimited" | "reached" | "uncountable";
 		source: "none" | "default" | "custom";
@@ -830,6 +882,7 @@ export type BudgetState = {
 		heldUsd: number | null;
 		remainingUsd: number | null;
 	};
+	month: string;
 	enforced: true;
 };
 
@@ -845,13 +898,12 @@ export type BudgetChange = {
 						refusal: string | null;
 						status: "open" | "unlimited" | "reached" | "uncountable";
 						remainingUsd: number | null;
-						limitedBy: "repo" | "account" | null;
+						limitedBy: "account" | "repo" | null;
 					};
 					heldUsd: number | null;
 					remainingUsd: number | null;
 			  }
 			| undefined;
-		month: string;
 		account: {
 			status: "open" | "unlimited" | "reached" | "uncountable";
 			source: "none" | "default" | "custom";
@@ -860,6 +912,7 @@ export type BudgetChange = {
 			heldUsd: number | null;
 			remainingUsd: number | null;
 		};
+		month: string;
 		enforced: true;
 	};
 	after: {
@@ -873,13 +926,12 @@ export type BudgetChange = {
 						refusal: string | null;
 						status: "open" | "unlimited" | "reached" | "uncountable";
 						remainingUsd: number | null;
-						limitedBy: "repo" | "account" | null;
+						limitedBy: "account" | "repo" | null;
 					};
 					heldUsd: number | null;
 					remainingUsd: number | null;
 			  }
 			| undefined;
-		month: string;
 		account: {
 			status: "open" | "unlimited" | "reached" | "uncountable";
 			source: "none" | "default" | "custom";
@@ -888,9 +940,102 @@ export type BudgetChange = {
 			heldUsd: number | null;
 			remainingUsd: number | null;
 		};
+		month: string;
 		enforced: true;
 	};
-	changed: ("repo" | "account")[];
+	changed: ("account" | "repo")[];
+};
+
+export type AutoReload = {
+	status: "off" | "pending" | "on" | "turned_off" | "capped";
+	enabled: boolean;
+	message: string | null;
+	month: string;
+	thresholdUsd: number;
+	packUsd: number;
+	monthlyCapUsd: number;
+	pendingSince: number | null;
+	retryAfter: number | null;
+	lastReloadAt: number | null;
+	capReachedAt: number | null;
+	offReason:
+		| "card_declined"
+		| "authentication_required"
+		| "no_payment_method"
+		| "payment_failed"
+		| "disputed"
+		| "stalled"
+		| "billing_error"
+		| null;
+	offAt: number | null;
+	chargeUsd: number;
+	reloadedUsd: number;
+	disputeOpen: boolean;
+	packOptionsUsd: number[];
+};
+
+export type AutoReloadChange = {
+	before: {
+		status: "off" | "pending" | "on" | "turned_off" | "capped";
+		enabled: boolean;
+		message: string | null;
+		month: string;
+		thresholdUsd: number;
+		packUsd: number;
+		monthlyCapUsd: number;
+		pendingSince: number | null;
+		retryAfter: number | null;
+		lastReloadAt: number | null;
+		capReachedAt: number | null;
+		offReason:
+			| "card_declined"
+			| "authentication_required"
+			| "no_payment_method"
+			| "payment_failed"
+			| "disputed"
+			| "stalled"
+			| "billing_error"
+			| null;
+		offAt: number | null;
+		chargeUsd: number;
+		reloadedUsd: number;
+		disputeOpen: boolean;
+		packOptionsUsd: number[];
+	};
+	after: {
+		status: "off" | "pending" | "on" | "turned_off" | "capped";
+		enabled: boolean;
+		message: string | null;
+		month: string;
+		thresholdUsd: number;
+		packUsd: number;
+		monthlyCapUsd: number;
+		pendingSince: number | null;
+		retryAfter: number | null;
+		lastReloadAt: number | null;
+		capReachedAt: number | null;
+		offReason:
+			| "card_declined"
+			| "authentication_required"
+			| "no_payment_method"
+			| "payment_failed"
+			| "disputed"
+			| "stalled"
+			| "billing_error"
+			| null;
+		offAt: number | null;
+		chargeUsd: number;
+		reloadedUsd: number;
+		disputeOpen: boolean;
+		packOptionsUsd: number[];
+	};
+};
+
+export type AutoReloadUpdate = {
+	enabled?: boolean | undefined;
+	thresholdUsd?: number | undefined;
+	packUsd?: number | undefined;
+	monthlyCapUsd?: number | undefined;
 };
 
 export type RatingResult = {

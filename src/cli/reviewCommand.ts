@@ -43,8 +43,14 @@ function findingLines(r: ReviewSnapshot): string[] {
 	const findings = r.payload?.findings ?? r.findings;
 	return findings.map((f) => {
 		const state = f.state ?? f.status;
-		return `${f.ref ? `${f.ref} ` : ""}[${f.severity}] ${loc(f)} — ${f.message}  (${state}${f.answered ? ", answered" : ""}, id ${f.id})`;
+		const instances = ("instances" in f ? f.instances : undefined) ?? [];
+		return `${f.ref ? `${f.ref} ` : ""}[${f.severity}] ${loc(f)} — ${f.message}  (${state}${f.answered ? ", answered" : ""}, id ${f.id})${alsoAt(instances)}`;
 	});
+}
+
+/** The finding's other places with the same defect, each to fix (REVIEW_FINDING_INSTANCES). */
+export function alsoAt(instances: ReadonlyArray<{ file: string; line: number | null }>): string {
+	return instances.length > 0 ? `\n    also at: ${instances.map(loc).join(", ")}` : "";
 }
 
 export function formatReview(r: ReviewSnapshot): string {
