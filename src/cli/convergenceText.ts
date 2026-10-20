@@ -4,6 +4,7 @@
  * --json prints every segment, pipelines included.
  */
 import type { Quality } from "../lib/client";
+import { formatLoop } from "./loopText";
 
 type Segment = Quality["convergence"]["overall"];
 
@@ -47,5 +48,6 @@ export function formatConvergence(c: Quality["convergence"]): string[] {
 		`Convergence, ${c.pullRequests} pull requests merged in the window${cut}.${thin}`,
 		...segmentText(c.overall),
 		...(c.byPipeline.length > 1 ? ["By pipeline:", ...c.byPipeline.flatMap(segmentText)] : []),
+		...(c.loop ? formatLoop(c.loop) : []),
 	];
 }

@@ -73,6 +73,30 @@ describe("requests", () => {
 		expect(calls[0]?.init.headers).toMatchObject({ Authorization: `Bearer ${TOKEN}` });
 	});
 
+	test("a client that names its caller says so on every request", async () => {
+		const calls: RequestInit[] = [];
+		const fetchImpl = (async (_url: string, init: RequestInit) => {
+			calls.push(init);
+			return new Response("[]");
+		}) as unknown as typeof fetch;
+		let name: string | undefined;
+		const caller = () => ({ client: name, pluginVersion: "0.3.0" });
+		const client = new CodePanelClient({
+			url: "https://x.site",
+			token: TOKEN,
+			fetch: fetchImpl,
+			caller,
+		});
+		await client.listRepos();
+		name = "claude-code";
+		await client.listRepos();
+		expect(calls[0]?.headers).toEqual({
+			Authorization: `Bearer ${TOKEN}`,
+			"X-CodePanel-Plugin-Version": "0.3.0",
+		});
+		expect(calls[1]?.headers).toMatchObject({ "X-CodePanel-Client": "claude-code" });
+	});
+
 	test("POST sends JSON, keeping null (clear) and dropping undefined (leave)", async () => {
 		const { calls, client } = recording();
 		await client.updatePanel({ panelId: "p1", name: undefined, budgetUsd: null });

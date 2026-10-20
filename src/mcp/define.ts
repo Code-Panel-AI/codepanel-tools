@@ -3,7 +3,7 @@
  * and the input fields most tools share.
  */
 import { z } from "zod";
-import type { CodePanelClient } from "../lib/client";
+import { type CodePanelClient, ESCALATION_TRIGGERS } from "../lib/client";
 
 export const repo = z
 	.string()
@@ -49,6 +49,23 @@ const stepBackAfterRounds = z
 	);
 /** A repository's round settings, as update_repo_settings takes them. */
 export const roundSettings = { maxAutoRounds, botMaxRounds, stepBackAfterRounds };
+/** Who to ask about findings no agent can settle (payload.escalation). */
+export const escalation = z
+	.object({
+		contacts: z.array(z.string()).min(1).max(5).describe("1-5 GitHub logins to ask, @ optional"),
+		triggers: z
+			.array(z.enum(ESCALATION_TRIGGERS))
+			.min(1)
+			.optional()
+			.describe(
+				"When to ask: upheld_critical (a critical the orchestrator upheld after the author's dispute), round_limit (a critical left at the round limit), step_back (anything gated left while the step-back notice shows), novel (a warning or critical the orchestrator judged a decision for a person; needs REVIEW_NOVEL_ESCALATION on). Absent means upheld_critical and round_limit.",
+			),
+	})
+	.nullable()
+	.optional()
+	.describe(
+		"Escalate findings no agent can settle to these people: nextAction becomes escalate, the commit status names them and one PR comment asks them to answer with /feedback. Null clears it; absent leaves it. Off unless set.",
+	);
 export const panelId = z.string().describe("Panel id, from get_panel");
 
 /** What the server hands a running tool besides its arguments. */

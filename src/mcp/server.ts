@@ -30,15 +30,20 @@ import { runTool } from "./run";
 import { SERVER_INFO, SERVER_INSTRUCTIONS, toolAnnotations } from "./shared";
 import { TOOLS, withAgentName } from "./tools";
 
+const server = new McpServer(SERVER_INFO, { instructions: SERVER_INSTRUCTIONS });
+
 let client: CodePanelClient;
 try {
-	client = new CodePanelClient(await loadConfig());
+	// The MCP client names itself when it connects, so the name is read per request.
+	const caller = () => ({
+		client: server.server.getClientVersion()?.name,
+		pluginVersion: SERVER_INFO.version,
+	});
+	client = new CodePanelClient({ ...(await loadConfig()), caller });
 } catch (error) {
 	console.error(error instanceof Error ? error.message : error);
 	process.exit(1);
 }
-
-const server = new McpServer(SERVER_INFO, { instructions: SERVER_INSTRUCTIONS });
 
 for (const def of TOOLS) {
 	server.registerTool(

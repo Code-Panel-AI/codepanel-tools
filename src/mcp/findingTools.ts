@@ -43,7 +43,13 @@ const ref = z
 	.describe('The finding as the review names it, e.g. "F3", or "review" for the whole review');
 const rating = z.enum(["up", "down"]);
 
-const batchItem = z.object({ ref, rating, reason: rateReason, note });
+const ratingDetails = {
+	reason: rateReason,
+	note,
+	verdict: rateReason.describe("Alias for reason; if both are given they must agree"),
+	comment: note.describe("Alias for note; if both are given they must agree"),
+};
+const batchItem = z.object({ ref, rating, ...ratingDetails });
 
 export const FINDING_TOOLS = [
 	tool({
@@ -90,8 +96,7 @@ export const FINDING_TOOLS = [
 			pr,
 			ref: ref.optional().describe(`${ref.description}. Required unless ratings is given`),
 			rating: rating.optional().describe("Required unless ratings is given"),
-			reason: rateReason,
-			note,
+			...ratingDetails,
 			ratings: z
 				.array(batchItem)
 				.min(1)
@@ -102,7 +107,20 @@ export const FINDING_TOOLS = [
 		},
 		writes: true,
 		run: (c, { ratings, ref: one, rating: verdict, ...a }) => {
-			if (ratings) return c.rateMany({ repo: a.repo, pr: a.pr, agent: a.agent, ratings });
+			if (ratings) {
+				if (
+					[one, verdict, a.reason, a.note, a.verdict, a.comment].some(
+						(value) => value !== undefined,
+					)
+				) {
+					throw new CodePanelError(
+						400,
+						"with ratings, put targets and rating details inside each item",
+						{ code: "invalid_input" },
+					);
+				}
+				return c.rateMany({ repo: a.repo, pr: a.pr, agent: a.agent, ratings });
+			}
 			if (!one || !verdict) {
 				throw new CodePanelError(400, "give ref and rating, or ratings", { code: "invalid_input" });
 			}

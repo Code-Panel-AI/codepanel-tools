@@ -2,12 +2,14 @@
  * Repository and panel commands: `codepanel repos …` and `codepanel panel …`.
  */
 import {
+	type EscalationSetting,
 	GATE_LEVELS,
 	type GateLevel,
 	type ReasoningEffort,
 	type ReviewSwitchesUpdate,
 } from "../lib/client";
-import { type SettingsCommand, switchesFlag } from "./settingsCommand";
+import { type PanelPlanCommand, parsePanelPlan } from "./panelPlanCommand";
+import { escalationFlag, type SettingsCommand, switchesFlag } from "./settingsCommand";
 import { MAX_ROUNDS, noExtra, type Reader, repoArg } from "./tokens";
 import { UsageError } from "./usageError";
 
@@ -27,6 +29,7 @@ export type SetupCommand =
 			agentFiles?: boolean;
 			inlineSuggestions?: boolean;
 			reviewSwitches?: ReviewSwitchesUpdate;
+			escalation?: EscalationSetting | null;
 	  }
 	| { kind: "panel" }
 	| { kind: "panel.roles" }
@@ -125,6 +128,7 @@ export function parseRepos(
 				inlineSuggestions: onOff("inline-suggestions", r.flag("inline-suggestions")),
 				agentFiles: onOff("agent-files", r.flag("agent-files")),
 				reviewSwitches: switchesFlag(r.flag("switches")),
+				escalation: escalationFlag(r),
 			};
 		}
 		case "switches":
@@ -157,7 +161,7 @@ function parseAddReviewer(r: Reader): SetupCommand {
 }
 
 /** `args` is what follows `panel`: a subcommand, which takes no positionals. */
-export function parsePanel(args: string[], r: Reader): SetupCommand {
+export function parsePanel(args: string[], r: Reader): SetupCommand | PanelPlanCommand {
 	const [sub, ...extra] = args;
 	noExtra(extra);
 	switch (sub) {
@@ -167,6 +171,10 @@ export function parsePanel(args: string[], r: Reader): SetupCommand {
 			return { kind: "panel.roles" };
 		case "add-reviewer":
 			return parseAddReviewer(r);
+		case "recommend":
+		case "apply":
+		case "restore":
+			return parsePanelPlan(sub, r);
 		case "remove-reviewer":
 			return {
 				kind: "panel.removeReviewer",

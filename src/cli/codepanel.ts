@@ -9,8 +9,12 @@
  * Or skip login and set CODEPANEL_URL and CODEPANEL_TOKEN (cpk_…).
  * See docs/api-and-agents.md.
  */
+import { adminConfigFromEnv } from "../lib/adminClient";
 import { CodePanelClient } from "../lib/client";
+import { loadCredentials } from "../lib/credentials";
 import { loadConfig } from "../lib/loadConfig";
+import { SERVER_INFO } from "../mcp/shared";
+import { adminNotice } from "./adminCommand";
 import { parseArgs, USAGE, UsageError } from "./args";
 import { errorText } from "./errorOutput";
 import { runLogin, runLogout } from "./login";
@@ -23,6 +27,8 @@ const SIGINT_EXIT_CODE = 130;
  * request that ignores the signal can keep it alive.
  */
 const SIGINT_GRACE_MS = 1000;
+/** How the CLI names itself to the server; it ships with the MCP server, so it shares its version. */
+const CLI_CALLER = { client: "codepanel-cli", pluginVersion: SERVER_INFO.version };
 
 async function main(argv: string[]): Promise<number> {
 	let parsed: ReturnType<typeof parseArgs>;
@@ -52,7 +58,12 @@ async function main(argv: string[]): Promise<number> {
 		if (command.kind === "logout") return await runLogout();
 		if (command.kind === "login") return await runLogin(command, { signal: abort.signal });
 
-		const client = new CodePanelClient(await loadConfig(), abort.signal);
+		const config = command.kind.startsWith("admin.")
+			? adminConfigFromEnv(process.env, await loadCredentials(process.env))
+			: await loadConfig();
+		const client = new CodePanelClient({ ...config, caller: () => CLI_CALLER }, abort.signal);
+		const notice = command.kind === "admin.credit" ? adminNotice(command) : undefined;
+		if (notice) console.error(notice);
 		const result = await execute(command, client, { signal: abort.signal });
 		console.log(parsed.json ? JSON.stringify(result, null, 2) : format(command, result));
 		return abort.signal.aborted ? SIGINT_EXIT_CODE : exitCodeFor(command, result);

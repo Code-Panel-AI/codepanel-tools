@@ -21,7 +21,7 @@ export const LEARNING_TOOLS = [
 		name: "list_learnings",
 		title: "List learnings",
 		description:
-			"A repository's learnings, highest ref first: ref (L3), text, scope (a path prefix; empty for the whole repository) and state. state.status is active (applied to pull requests opened after it activated), candidate (state.needs says what would confirm it), off (someone rated it down) or expired (no up for 180 days; an up re-confirms it). A learning with source drafted was written by the orchestrator from at least three false positives on two or more pull requests; drafted.evidence lists them (label, file, note). It is active at once; rate it down if the code contradicts it.",
+			"A repository's learnings, highest ref first: ref (L3), text, scope (a path prefix; empty for the whole repository) and state. state.status is active (applied to pull requests opened after it activated), candidate (state.needs says what would confirm it), off (someone rated it down) or expired (no up for 180 days; an up re-confirms it). A learning with source drafted was written by the orchestrator from at least three false positives on two or more pull requests; drafted.evidence lists them (label, file, note). It is active at once; rate it down if the code contradicts it. hits (count, lastAt, lastPrNumber), present once the repository has REVIEW_LEARNING_ATTRIBUTION on and the learning has decided a review, counts the findings the orchestrator dropped or demoted because of it; rate a learning down if its hits are wrong.",
 		input: { repo },
 		writes: false,
 		run: (c, a) => c.listLearnings(a.repo),

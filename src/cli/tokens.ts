@@ -5,7 +5,7 @@
 import type { ReasoningEffort } from "../lib/client";
 import { UsageError } from "./usageError";
 
-const BOOLEAN_FLAGS = new Set(["json", "connectable", "trigger", "all", "help", "wait"]);
+const BOOLEAN_FLAGS = new Set(["json", "connectable", "trigger", "all", "help", "wait", "local"]);
 /**
  * Every option that takes a value. The tokenizer must know them: it cannot
  * tell `--jsn review` (a typo) from `--panel review` (a value) by looking at
@@ -15,30 +15,40 @@ const BOOLEAN_FLAGS = new Set(["json", "connectable", "trigger", "all", "help", 
 const VALUE_FLAGS = new Set([
 	"agent",
 	"agent-files",
+	"as-of",
 	"auto-review",
 	"bot-max-rounds",
 	"budget",
 	"cap",
+	"cost",
+	"cursor",
 	"days",
 	"effort",
 	"file",
 	"gate",
 	"inline-suggestions",
 	"limit",
+	"escalate-on",
+	"escalate-to",
+	"max-usd-per-pr",
 	"max-auto-rounds",
 	"model",
 	"monthly",
 	"name",
 	"note",
 	"pack",
+	"paths",
 	"panel",
 	"pr",
 	"prompt",
+	"quality",
 	"provider",
 	"reason",
 	"repo",
+	"request-id",
 	"reviewer",
 	"role",
+	"roles",
 	"scope",
 	"scopes",
 	"step-back-after-rounds",
@@ -48,7 +58,9 @@ const VALUE_FLAGS = new Set([
 	"text",
 	"threshold",
 	"timeout",
+	"topic",
 	"traceparent",
+	"until",
 	"url",
 ]);
 /** A Map, not an object, so `--wait=constructor` finds no inherited key. */

@@ -4,7 +4,7 @@
  */
 import type { StoredCredentials } from "./credentials";
 
-const TOKEN_PATTERN = /^cpk_[A-Za-z0-9_-]{43}$/;
+export const TOKEN_PATTERN = /^cpk_[A-Za-z0-9_-]{43}$/;
 
 /**
  * The API of the hosted service, codepanel.ai: its Convex deployment's site
@@ -57,10 +57,25 @@ export function apiUrlFor(raw: string): string {
 	return trimmed;
 }
 
+/**
+ * Headers that say which client made a call and which tools version it runs,
+ * so the server can tell guidance versions apart (convex/loop/caller.ts reads
+ * them, with the same names).
+ */
+export const CLIENT_HEADER = "X-CodePanel-Client";
+export const PLUGIN_VERSION_HEADER = "X-CodePanel-Plugin-Version";
+
+/** Who is calling: read on every request, since an MCP client names itself only after connecting. */
+export interface CallerInfo {
+	client?: string;
+	pluginVersion?: string;
+}
+
 export interface ClientConfig {
 	url: string;
 	token: string;
 	fetch?: typeof fetch;
+	caller?: () => CallerInfo;
 	/**
 	 * The caller's W3C traceparent, sent with every review it triggers so the
 	 * review can be joined to the caller's trace. From $TRACEPARENT, the
@@ -106,6 +121,14 @@ function sameDeployment(a: string, b: string): boolean {
  * the deployment it was issued by, so setting CODEPANEL_URL to another
  * deployment never sends it a token it did not issue.
  */
+/** The caller headers for a request, leaving out what is unknown. */
+export function callerHeaders(caller: CallerInfo | undefined): Record<string, string> {
+	const headers: Record<string, string> = {};
+	if (caller?.client) headers[CLIENT_HEADER] = caller.client;
+	if (caller?.pluginVersion) headers[PLUGIN_VERSION_HEADER] = caller.pluginVersion;
+	return headers;
+}
+
 export function configFromEnv(
 	env: Record<string, string | undefined> = process.env,
 	stored: StoredCredentials | null = null,

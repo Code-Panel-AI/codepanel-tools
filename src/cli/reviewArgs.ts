@@ -2,6 +2,7 @@
  * Review commands: `review`, `sessions`, `session`, `findings`, `rounds`.
  */
 import { DISMISS_REASONS, type DismissReason } from "../lib/client";
+import type { LocalReviewCommand } from "./localReview";
 import { MAX_ROUNDS, noExtra, prArg, type Reader, repoArg } from "./tokens";
 import { UsageError } from "./usageError";
 
@@ -18,6 +19,7 @@ export type ReviewCommand =
 			/** Overrides $TRACEPARENT for the review this triggers. */
 			traceparent?: string;
 	  }
+	| LocalReviewCommand
 	| { kind: "sessions"; repo?: string; status?: "active" | "completed" | "all"; limit?: number }
 	| { kind: "session"; id: string }
 	| { kind: "findings"; repo: string; pr: number; all: boolean }
@@ -32,7 +34,29 @@ export type ReviewCommand =
 	| { kind: "findings.reopen"; findingId?: string; repo?: string; pr?: number; ref?: string }
 	| { kind: "rounds"; repo: string; pr: number; rounds: string };
 
+/** Flags of a panel review that a local brief has no use for. */
+const NOT_LOCAL = ["trigger", "wait", "panel", "timeout", "sha", "traceparent"];
+
+/** `review --local [owner/name] [--paths a,b]`: the brief, not a review. */
+function parseLocalReview(positionals: string[], r: Reader): LocalReviewCommand {
+	for (const name of NOT_LOCAL) {
+		if (r.bool(name) || r.flag(name) !== undefined) {
+			throw new UsageError(`--${name} does not go with --local`);
+		}
+	}
+	const [first, ...extra] = positionals;
+	noExtra(extra);
+	const repo = first === undefined ? undefined : repoArg(first.replace(/#\d+$/, ""));
+	const paths = r
+		.flag("paths")
+		?.split(",")
+		.map((p) => p.trim())
+		.filter(Boolean);
+	return { kind: "review.local", repo, paths: paths?.length ? paths : undefined };
+}
+
 export function parseReview(positionals: string[], r: Reader): ReviewCommand {
+	if (r.bool("local")) return parseLocalReview(positionals, r);
 	const { repo, pr, rest } = prArg(positionals);
 	noExtra(rest);
 	const wait = r.bool("wait");
