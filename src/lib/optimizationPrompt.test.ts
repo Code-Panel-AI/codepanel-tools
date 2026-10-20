@@ -28,5 +28,5 @@ test("an agent still gets a repo-specific evidence handoff when optional diagnos
 	expect(result.markdownPrompt).toContain("codepanel optimize owner/project --json");
 	expect(result.markdownPrompt).toContain("save");
 	expect(result.markdownPrompt).toContain("selected sample, not overall review accuracy");
-	expect(result.diagnosticErrors).toHaveLength(2);
+	expect(result.diagnosticErrors).toHaveLength(3);
 });

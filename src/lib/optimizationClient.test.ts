@@ -31,7 +31,11 @@ test("quality and provider failures preserve spend and explicitly identify unava
 	const report = await getOptimization(client, "u/app");
 	expect(report.spend.totalUsd).toBe(8);
 	expect(report.quality).toBeNull();
-	expect(report.diagnosticErrors.map((e) => e.component)).toEqual(["quality", "providers"]);
+	expect(report.diagnosticErrors.map((e) => e.component)).toEqual([
+		"authorship",
+		"quality",
+		"providers",
+	]);
 	expect(report.alternatives).toEqual({ balanced: null, economy: null });
 	expect(report.nextAction).toContain("spend report remains available");
 });

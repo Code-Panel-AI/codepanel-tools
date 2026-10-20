@@ -15,7 +15,7 @@ export const HANDOFF_TOOLS = [
 		name: HANDOFF_TOOL,
 		title: "Submit handoff",
 		description:
-			"Before review, tell CodePanel's reviewers about the pull request you wrote: what you changed and why, what you tested and how, what you are unsure of, and what you left out on purpose. The next review round reads it (a codepanel-handoff block in the PR description takes precedence). Reviewers check it against the code: a test you name gets its coverage checked, and something you left out on purpose is not reported unless leaving it out breaks the code. Submitting again replaces it.",
+			"Before review, tell CodePanel's reviewers about the pull request you wrote: what you changed and why, what you tested and how, what you are unsure of, and what you left out on purpose. The next review round reads it (a codepanel-handoff block in the PR description takes precedence). Reviewers check it against the code: a test you name gets its coverage checked, and something you left out on purpose is not reported unless leaving it out breaks the code. Submitting again replaces it. Pass authorAgent and authorModel explicitly for the code author, with the full head sha. The submitting client name alone does not establish authorship; author metadata is read even when handoff prompts are disabled.",
 		input: {
 			repo,
 			pr,
@@ -29,6 +29,24 @@ export const HANDOFF_TOOLS = [
 				.regex(/^[0-9a-f]{7,40}$/i)
 				.optional()
 				.describe("The head commit it describes; defaults to the PR's head as CodePanel saw it"),
+			authorAgent: z
+				.string()
+				.trim()
+				.min(1)
+				.max(120)
+				.optional()
+				.describe(
+					"Agent that wrote the code, e.g. Claude Code; self-reported. Requires full 40-character sha.",
+				),
+			authorModel: z
+				.string()
+				.trim()
+				.min(1)
+				.max(120)
+				.optional()
+				.describe(
+					"Actual model that wrote the code, if known; never guess. Requires full 40-character sha.",
+				),
 			agent: z
 				.string()
 				.optional()

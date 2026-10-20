@@ -30,6 +30,9 @@ export function formatSpendReport(report: SpendReport): string {
 export function formatOptimization(report: Awaited<ReturnType<typeof getOptimization>>): string {
 	return [
 		formatSpendReport(report.spend),
+		report.authorship
+			? `Authorship: ${report.authorship.unknownAuthorRounds} unknown and ${report.authorship.sameAuthorFamilyRounds} same-author-family panels in the last ${report.authorship.sampledRounds} rounds. These are marker-based observations, not unique PR counts or proof of independence.`
+			: "Authorship diagnostics unavailable.",
 		report.quality ? formatQuality(report.quality) : "Quality diagnostics unavailable.",
 		...report.diagnosticErrors.map((e) => `${e.component}: ${e.message}`),
 		...Object.entries(report.alternatives).map(([name, panel]) =>

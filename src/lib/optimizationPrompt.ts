@@ -26,6 +26,7 @@ export function optimizationPrompt(repo: string, suggestions: readonly Suggestio
 		"2. Read AGENTS.md, .codepanel/rules.md, architecture, critical paths, and tests. Check rules against current source; identify contradictions instead of enforcing stale guidance.",
 		"3. Trace expensive PRs and rounds. Separate consolidation, dispute judging, tool turns, failed calls, prompt caching, and repeat triggers. State any attribution or history limits.",
 		"4. Inspect confirmed useful findings, withdrawn disputes, and recurring noise by role/model. Disputed findings are a selected sample, not overall review accuracy. Check callers and shared components before asserting a defect.",
+		"5. Check authorship and independence. Missing agent markers mean unknown, never human. Declare the actual tool/model as plain-text Authoring agent: and Authoring model: lines in the PR description. If author, reviewers and dispute judge share a family, test an independent family; multiple Claude models are not independent families.",
 		"",
 		"## Proposed change and proof",
 		"- Prefer the smallest repo-specific change. Preserve useful roles and custom instructions; a generic panel replacement can remove both. Compare balanced and economy estimates only as candidates, not quality guarantees.",

@@ -16,6 +16,8 @@ test("handoff takes the note from --text or --file, with an optional sha and age
 		file: undefined,
 		sha: undefined,
 		agent: "codex",
+		authorAgent: undefined,
+		authorModel: undefined,
 	});
 	expect(cmd(["handoff", "acme/app", "7", "--file", "-", "--sha", "abc1234"])).toMatchObject({
 		file: "-",
@@ -57,4 +59,32 @@ test("handoffText stops reading stdin when the signal aborts", async () => {
 	abort.abort();
 	const error = await handoffText(command, abort.signal).catch((e: unknown) => e);
 	expect((error as Error).name).toBe("AbortError");
+});
+
+test("explicit code author flags need a full head SHA and stay distinct from the submitter", () => {
+	const sha = "a".repeat(40);
+	expect(
+		cmd([
+			"handoff",
+			"acme/app#7",
+			"--text",
+			"tested",
+			"--sha",
+			sha,
+			"--agent",
+			"review-bot",
+			"--author-agent",
+			"Claude Code",
+			"--author-model",
+			"Claude Opus 5.5",
+		]),
+	).toMatchObject({
+		sha,
+		agent: "review-bot",
+		authorAgent: "Claude Code",
+		authorModel: "Claude Opus 5.5",
+	});
+	expect(() =>
+		cmd(["handoff", "acme/app#7", "--text", "tested", "--author-agent", "Claude Code"]),
+	).toThrow("full 40-character");
 });
