@@ -161,6 +161,43 @@ test("the payload's step-back block is a line after Next, with how to turn it of
 	expect(text.indexOf("Next:")).toBeLessThan(text.indexOf("Step back:"));
 });
 
+test("the payload's convergence block is a facts line after Next", () => {
+	const review = {
+		found: true,
+		status: "complete",
+		round: 5,
+		rounds: { completed: 5, perPr: false, running: false },
+		open: { critical: 0, warning: 0, suggestion: 0 },
+		gate: { level: "off", blocking: false, unanswered: [] },
+		findings: [],
+		payload: {
+			verdict: "ready",
+			blockedBy: [],
+			verdictReason: null,
+			nextRound: "will-run-on-push",
+			nextAction: { action: "done", refs: [], reason: "nothing blocks" },
+			convergence: {
+				rounds: 5,
+				firstGreen: 2,
+				roundsByTrigger: [
+					{ trigger: "push", rounds: 3 },
+					{ trigger: "manual", rounds: 2 },
+				],
+				afterGreen: {
+					rounds: 3,
+					reBlocked: 1,
+					byTrigger: [{ trigger: "manual", rounds: 2, reBlocked: 1 }],
+				},
+			},
+		},
+	} as unknown as ReviewSnapshot;
+	const text = formatReview(review);
+	expect(text).toContain(
+		"Rounds: 5 (3 push, 2 manual); gate first green after round 2; 3 after green (2 manual; 1 re-blocked).",
+	);
+	expect(text.indexOf("Next:")).toBeLessThan(text.indexOf("Rounds: 5 (3 push"));
+});
+
 test("without a nextAction (an older server) the text output has no Next line", () => {
 	const review = {
 		found: true,

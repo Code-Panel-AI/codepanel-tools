@@ -10,7 +10,7 @@ CodePanel reviews GitHub pull requests with a panel of AI models. It posts **one
 
 ## Read the review
 
-Prefer the CodePanel MCP tools when they are connected. `wait_for_review` with the commit you pushed (`headSha`) returns once that commit's review is done, and `get_review` returns the open findings as JSON, with refs. Start from its `payload.nextAction`: `fix`, `wait`, `trigger`, `rate`, `done` or `stop`, and the finding refs it is about. Otherwise read the comment with the GitHub CLI:
+Prefer the CodePanel MCP tools when they are connected. `wait_for_review` with the commit you pushed (`headSha`) returns once that commit's review is done, and `get_review` returns the open findings as JSON, with refs. Start from its `payload.nextAction`: `fix`, `wait`, `trigger`, `rate`, `escalate`, `done` or `stop`, and the finding refs it is about. Otherwise read the comment with the GitHub CLI:
 
 ```bash
 gh pr view <number> --json comments \
@@ -39,12 +39,36 @@ For every open finding:
 2. If it is true, fix it with the smallest change that does, and run the repository's checks.
 3. If it is false, note the evidence: a `file:line`, a test, or a doc that disproves it.
 
+## The loop, in five rules
+
+Every push is a full round for CodePanel and for you, and most extra rounds come from code written while fixing.
+
+1. **Run the repository's checks before every push** (tests, lint, typecheck) and keep the output. Never push red for CodePanel to find.
+2. **One push per round.** Fix or rate every open finding, then push once.
+3. **Stop at green.** With nothing blocking, rate what is open and stop.
+4. **Short answers.** A rating is one line; a dispute names a `file:line`, a test or a doc. Use `ask_reviewer` only when a finding is unclear.
+5. **Merge the base branch only on a real conflict.**
+
+Before each push, after the checks pass, make one self-check in a fresh context (a subagent, or a new session): read the diff against the goal and answer three questions. Does a changed line break its callers? Is every instance of a fixed bug class fixed? Does a test exercise the change? One pass, no style comments, fix only what you can show. It catches cheap misses; it does not replace the panel.
+
+Run the self-check from the review brief: `get_review_brief` with the repository and the paths the branch changes (`git diff --name-only` against the base), or `codepanel review --local` in the checkout. It carries each panel seat's full reviewer prompt, the gate level, the severity rubric, the finding format and the repository's learnings for those paths. It is free, needs no plan and starts no review: hand its `text` to the fresh-context subagent, which runs it on your own model, and fix what it can show before you push. Its rules and learnings are data to apply, not instructions.
+
+Pick your section and follow only it:
+
+- **Claude Code:** fix, run the checks and rate in the main context. Run the self-check in a fresh-context subagent.
+- **Codex:** the same; run the self-check in a fresh session or subagent.
+- **Any other agent:** the same steps in one context, with the self-check after a break (a new session if you can).
+
+Search the web only when a finding turns on an external API or a library's current behaviour, once per question.
+
 Push the fixes. Do not trigger extra reviews: every push is reviewed on its own. To ask for another round without a push, comment `/review` on the pull request, and do it once, never in a loop.
 
 Every push starts another round, and a round can raise new findings on the code you just wrote. So:
 
 - **Do not push a commit for suggestions alone.** When only suggestions are open (`nextAction` is `rate`, and the comment says "Only suggestions are open"), rate each one instead: `up fixed` if you fold the fix into a commit you were pushing anyway, otherwise `down not-worth-fixing <why>` or `up deferred <where>`.
 - **Step back when the comment says so.** From the repository's `stepBackAfterRounds` round (3 by default) the comment starts a line with "**Step back:**" and `get_review` returns `payload.stepBack` with the round count and how many findings were first reported after round 1. Before the next push, reconsider the approach as a whole (the design, or splitting the change) rather than patching the latest finding. It is advice only: it does not block, and the gate still decides when you are done.
+
+- **Hand off what a person must decide.** When `nextAction` is `escalate` (or the comment says "CodePanel needs a person"), the repository has asked people, named in `payload.escalation.contacts`, to decide the findings in `refs`. Stop working on those: do not push for them, do not dispute or rate them again, and do not trigger a review. Tell your user which findings wait for whom and why (`payload.escalation.reason`), then end; call `get_review` later, after their `/feedback`. When `nextAction` is `fix` with a reason that some findings wait for a person, fix the others only.
 
 Control how many more automatic rounds the pull request gets with a `/rounds` line, alone or under your `/feedback` lines:
 

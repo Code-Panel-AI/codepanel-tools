@@ -4,10 +4,13 @@
 import type { CodePanelClient, Question, ReviewSnapshot, TriggerResult } from "../lib/client";
 import { triggerAndWait, type WaitOptions, type WaitResult, waitForReview } from "../lib/wait";
 import type { Command } from "./args";
+import type { GitRunner } from "./localReview";
 
 export interface ExecuteOptions extends Pick<WaitOptions, "sleep" | "now"> {
 	/** Cancels a `review --wait` (e.g. on Ctrl-C). */
 	signal?: AbortSignal;
+	/** Runs git for `review --local`; tests stand one in. */
+	git?: GitRunner;
 }
 
 /** `review`, which can also trigger a review and wait for it to finish. */
@@ -59,6 +62,7 @@ export function formatReview(r: ReviewSnapshot): string {
 	const verdict = r.payload ? [verdictSummary(r.payload)] : [];
 	const next = r.payload?.nextAction ? [nextActionLine(r.payload.nextAction)] : [];
 	const stepBack = r.payload?.stepBack ? [stepBackLine(r.payload.stepBack)] : [];
+	const convergence = r.payload?.convergence ? [convergenceLine(r.payload.convergence)] : [];
 	return [
 		head,
 		formatRounds(r.rounds, r.payload?.nextRound),
@@ -66,6 +70,7 @@ export function formatReview(r: ReviewSnapshot): string {
 		...verdict,
 		...next,
 		...stepBack,
+		...convergence,
 		...findingLines(r),
 	].join("\n");
 }
@@ -79,6 +84,19 @@ function nextActionLine(next: NonNullable<Payload["nextAction"]>): string {
 /** payload.stepBack: advice only; the Next line is still what to do. */
 function stepBackLine(s: NonNullable<Payload["stepBack"]>): string {
 	return `Step back: round ${s.rounds}, ${s.findingsAfterRound1} of ${s.totalFindings} findings first reported after round 1; ${s.reason}. Off with: codepanel repos set <repo> --step-back-after-rounds 0.`;
+}
+
+/** payload.convergence: why a pull request has the rounds it has. Facts only; the Next line is still what to do. */
+function convergenceLine(c: NonNullable<Payload["convergence"]>): string {
+	const byTrigger = (rows: ReadonlyArray<{ trigger: string; rounds: number }>) =>
+		rows.map((r) => `${r.rounds} ${r.trigger}`).join(", ");
+	const green =
+		c.firstGreen === null ? "gate not yet green" : `gate first green after round ${c.firstGreen}`;
+	const later =
+		c.afterGreen.rounds === 0
+			? "no rounds after green"
+			: `${c.afterGreen.rounds} after green (${byTrigger(c.afterGreen.byTrigger)}; ${c.afterGreen.reBlocked} re-blocked)`;
+	return `Rounds: ${c.rounds} (${byTrigger(c.roundsByTrigger)}); ${green}; ${later}.`;
 }
 
 const STATUS_PROBLEM = {

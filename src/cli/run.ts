@@ -2,6 +2,8 @@
  * Turn a parsed command into API calls, and the result into text.
  */
 
+import { AdminClient } from "../lib/adminClient";
+import type { SpendReport } from "../lib/apiTypes";
 import { askAndWait } from "../lib/ask";
 import type {
 	CodePanelClient,
@@ -25,10 +27,13 @@ import type {
 	TriggerResult,
 } from "../lib/client";
 import type { WaitResult } from "../lib/wait";
+import { executeAdmin, formatAdmin } from "./adminCommand";
 import type { Command } from "./args";
 import { handoffText } from "./handoffArgs";
 import { executeKnowledge, formatKnowledge } from "./knowledgeCommand";
 import { executeLearning, formatLearning } from "./learningCommand";
+import { executeLocalReview, formatLocalReview, type LocalBrief } from "./localReview";
+import { executePanelPlan, formatPanelPlan } from "./panelPlanCommand";
 import { executeQuality, formatQuality } from "./qualityCommand";
 import {
 	alsoAt,
@@ -40,6 +45,7 @@ import {
 	loc,
 } from "./reviewCommand";
 import { executeSettings, formatRepoSet, formatSettings } from "./settingsCommand";
+import { executeSpend, formatOptimization, formatSpendReport } from "./spendCommand";
 
 export { exitCodeFor } from "./reviewCommand";
 
@@ -65,6 +71,9 @@ export async function execute(
 		case "login":
 		case "logout":
 			return null;
+		case "spend":
+		case "optimize":
+			return executeSpend(command, client);
 		case "whoami":
 			return client.me();
 		case "repos":
@@ -81,6 +90,10 @@ export async function execute(
 			return client.listPanels();
 		case "panel.roles":
 			return client.listRoles();
+		case "panel.recommend":
+		case "panel.apply":
+		case "panel.restore":
+			return executePanelPlan(command, client);
 		case "models":
 			return client.listModels();
 		case "panel.addReviewer": {
@@ -108,6 +121,8 @@ export async function execute(
 			return client.keyStatus();
 		case "review":
 			return executeReview(command, client, options);
+		case "review.local":
+			return executeLocalReview(command, client, options.git);
 		case "sessions": {
 			const { kind: _, ...args } = command;
 			return client.listSessions(args);
@@ -140,11 +155,30 @@ export async function execute(
 			return executeLearning(command, client);
 		case "quality":
 			return executeQuality(command, client);
+		case "admin.overview":
+		case "admin.report":
+		case "admin.audit":
+		case "admin.users":
+		case "admin.user":
+		case "admin.comp":
+		case "admin.uncomp":
+		case "admin.credit":
+		case "admin.budget":
+		case "admin.undo":
+		case "admin.refreshModels":
+		case "admin.alertTest":
+		case "admin.release":
+		case "admin.inbox":
+		case "admin.handle":
+		case "admin.balance":
+			return executeAdmin(command, new AdminClient(client));
 		case "budget":
 		case "budget.set":
 		case "repos.switches":
 		case "autoReload":
 		case "autoReload.set":
+		case "creditsFirst":
+		case "creditsFirst.set":
 			return executeSettings(command, client);
 		case "feedback": {
 			const { kind: _, agent, ...args } = command;
@@ -326,6 +360,8 @@ export function format(command: Command, result: unknown): string {
 			return command.trigger
 				? formatTrigger(command.repo, command.pr, result as TriggerResult)
 				: formatReview(result as ReviewSnapshot);
+		case "review.local":
+			return formatLocalReview(result as LocalBrief);
 		case "sessions": {
 			const sessions = result as SessionSummary[];
 			return sessions.length ? sessions.map(formatSession).join("\n") : "No sessions.";
@@ -358,12 +394,39 @@ export function format(command: Command, result: unknown): string {
 			return formatLearning(command, result);
 		case "quality":
 			return formatQuality(result as Quality);
+		case "spend":
+			return formatSpendReport(result as SpendReport);
+		case "optimize":
+			return formatOptimization(result as Parameters<typeof formatOptimization>[0]);
+		case "admin.overview":
+		case "admin.report":
+		case "admin.audit":
+		case "admin.users":
+		case "admin.user":
+		case "admin.comp":
+		case "admin.uncomp":
+		case "admin.credit":
+		case "admin.budget":
+		case "admin.undo":
+		case "admin.refreshModels":
+		case "admin.alertTest":
+		case "admin.release":
+		case "admin.inbox":
+		case "admin.handle":
+		case "admin.balance":
+			return formatAdmin(command, result);
 		case "budget":
 		case "budget.set":
 		case "repos.switches":
 		case "autoReload":
 		case "autoReload.set":
+		case "creditsFirst":
+		case "creditsFirst.set":
 			return formatSettings(command, result);
+		case "panel.recommend":
+		case "panel.apply":
+		case "panel.restore":
+			return formatPanelPlan(command, result);
 		case "repos.set":
 			return formatRepoSet(result, command.reviewSwitches !== undefined);
 		case "handoff": {

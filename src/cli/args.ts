@@ -4,15 +4,16 @@
  * parser (setupArgs, reviewArgs, feedbackArgs, learningArgs); this file
  * routes to them.
  */
+import { parseAdmin } from "./adminArgs";
 import type { Command } from "./command";
 import { parseAsk, parseFeedback } from "./feedbackArgs";
 import { parseHandoff } from "./handoffArgs";
 import { parseRepoCommand } from "./learningArgs";
 import { parseQuality } from "./qualityCommand";
 import { parseFindings, parseReview, parseRounds, parseSessions } from "./reviewArgs";
-import { parseAutoReload, parseBudget } from "./settingsCommand";
+import { parseAutoReload, parseBudget, parseCreditsFirst } from "./settingsCommand";
 import { parsePanel, parseRepos } from "./setupArgs";
-import { noExtra, prArg, Reader, tokenize } from "./tokens";
+import { noExtra, prArg, Reader, repoArg, tokenize } from "./tokens";
 import { UsageError } from "./usageError";
 
 export type { Command } from "./command";
@@ -64,6 +65,10 @@ function parseCommand(positionals: string[], r: Reader): Command {
 			return parsePrCommand(group, rest, r);
 		case "rounds":
 			return parseRounds(rest);
+		case "spend":
+		case "optimize":
+			noExtra(rest.slice(1));
+			return { kind: group, repo: repoArg(rest[0]) };
 		case "quality":
 			noExtra(rest.slice(1));
 			return parseQuality(rest, r);
@@ -71,8 +76,12 @@ function parseCommand(positionals: string[], r: Reader): Command {
 			// `budget set` rejects its own extras with a clearer message.
 			noExtra(rest[0] === "set" ? [] : rest.slice(1));
 			return parseBudget(rest, r);
+		case "admin":
+			return parseAdmin(rest, r);
 		case "auto-reload":
 			return parseAutoReload(rest, r);
+		case "credits-first":
+			return parseCreditsFirst(rest);
 		default:
 			return parseRepoCommand(group, rest, r);
 	}

@@ -42,13 +42,20 @@ function drafted(l: Learning): string {
 	return `\n    drafted from ${l.drafted.evidence.map((e) => e.label).join(", ")}`;
 }
 
+/** How often it decided a review (REVIEW_LEARNING_ATTRIBUTION), so a wrong one can be found and turned off. */
+function hits(l: Learning): string {
+	if (!l.hits) return "";
+	const last = l.hits.lastPrNumber === undefined ? "" : `, last on PR #${l.hits.lastPrNumber}`;
+	return `\n    ${l.hits.count} finding(s) dropped or demoted${last}`;
+}
+
 function formatList(learnings: Learning[]): string {
 	if (learnings.length === 0)
 		return "No learnings yet. Add one with: codepanel learn <owner/name> <text>";
 	return learnings
 		.map(
 			(l) =>
-				`${l.ref}  ${state(l)}  ${l.scope || "(whole repository)"}\n    ${l.text}${drafted(l)}`,
+				`${l.ref}  ${state(l)}  ${l.scope || "(whole repository)"}\n    ${l.text}${drafted(l)}${hits(l)}`,
 		)
 		.join("\n");
 }

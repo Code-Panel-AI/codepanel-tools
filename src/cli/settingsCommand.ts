@@ -1,6 +1,7 @@
 /**
  * `codepanel budget …` (GET and POST /api/v1/budget), `codepanel
- * auto-reload …` (GET and POST /api/v1/auto-reload) and a repository's
+ * auto-reload …` (GET and POST /api/v1/auto-reload), `codepanel
+ * credits-first …` (GET and POST /api/v1/credits-first) and a repository's
  * review switches (`repos switches`, `repos set --switches`). The text
  * form says what changed; --json prints the whole state before and after.
  */
@@ -10,6 +11,11 @@ import {
 	type BudgetChange,
 	type BudgetState,
 	type CodePanelClient,
+	type CreditsFirst,
+	type CreditsFirstChange,
+	ESCALATION_TRIGGERS,
+	type EscalationSetting,
+	type EscalationTrigger,
 	REPO_SWITCHES,
 	type RepoSwitch,
 	type ReviewSwitchesUpdate,
@@ -34,7 +40,9 @@ export type SettingsCommand =
 			thresholdUsd?: number;
 			packUsd?: number;
 			monthlyCapUsd?: number;
-	  };
+	  }
+	| { kind: "creditsFirst" }
+	| { kind: "creditsFirst.set"; enabled: boolean | null };
 
 function amount(flag: string, value: string): number {
 	const n = value.trim() === "" ? Number.NaN : Number(value);
@@ -101,6 +109,17 @@ export function parseAutoReload(positionals: string[], r: Reader): SettingsComma
 
 const SWITCH_VALUES: Record<string, boolean | null> = { on: true, off: false, default: null };
 
+/** `credits-first`, or `credits-first on|off|default`. */
+export function parseCreditsFirst(positionals: string[]): SettingsCommand {
+	const [sub, ...rest] = positionals;
+	noExtra(rest);
+	if (sub === undefined) return { kind: "creditsFirst" };
+	if (!Object.hasOwn(SWITCH_VALUES, sub)) {
+		throw new UsageError("credits-first takes on, off or default");
+	}
+	return { kind: "creditsFirst.set", enabled: SWITCH_VALUES[sub] ?? null };
+}
+
 /** `--switches NAME=on,NAME=off,NAME=default`. */
 export function switchesFlag(value: string | undefined): ReviewSwitchesUpdate | undefined {
 	if (value === undefined) return undefined;
@@ -120,6 +139,36 @@ export function switchesFlag(value: string | undefined): ReviewSwitchesUpdate | 
 	return update;
 }
 
+/**
+ * `--escalate-to alice,bob` (or `none` to clear) and `--escalate-on
+ * upheld_critical,round_limit`; the server checks the logins.
+ */
+export function escalationFlag(r: Reader): EscalationSetting | null | undefined {
+	const to = r.flag("escalate-to");
+	const on = r.flag("escalate-on");
+	if (to === undefined) {
+		if (on !== undefined) throw new UsageError("--escalate-on needs --escalate-to");
+		return undefined;
+	}
+	if (to === "none") {
+		if (on !== undefined) throw new UsageError("--escalate-on cannot go with --escalate-to none");
+		return null;
+	}
+	const contacts = to
+		.split(",")
+		.map((c) => c.trim())
+		.filter(Boolean);
+	if (contacts.length === 0)
+		throw new UsageError("--escalate-to takes GitHub logins, comma separated, or none");
+	if (on === undefined) return { contacts };
+	const triggers = on.split(",").map((t) => t.trim());
+	const known: readonly string[] = ESCALATION_TRIGGERS;
+	if (!triggers.every((t) => known.includes(t))) {
+		throw new UsageError(`--escalate-on takes ${ESCALATION_TRIGGERS.join(", ")}, comma separated`);
+	}
+	return { contacts, triggers: triggers as EscalationTrigger[] };
+}
+
 export function executeSettings(command: SettingsCommand, client: CodePanelClient) {
 	switch (command.kind) {
 		case "budget":
@@ -136,7 +185,18 @@ export function executeSettings(command: SettingsCommand, client: CodePanelClien
 			const { kind: _, ...args } = command;
 			return client.setAutoReload(args);
 		}
+		case "creditsFirst":
+			return client.getCreditsFirst();
+		case "creditsFirst.set":
+			return client.setCreditsFirst(command.enabled);
 	}
+}
+
+function creditsFirstLine(s: CreditsFirst): string {
+	const how = s.creditsFirst
+		? "reviews spend credits first, then your own keys"
+		: "your own keys first; credits only where you have none";
+	return `Credits first: ${s.creditsFirst ? "on" : "off"}${s.source === "default" ? " (default)" : ""}: ${how}`;
 }
 
 /** A null amount is no limit, never zero: "left unlimited" must not read as "left $0". */
@@ -214,6 +274,14 @@ export function formatSettings(command: SettingsCommand, result: unknown): strin
 		case "autoReload.set": {
 			const { before, after } = result as AutoReloadChange;
 			return ["Before:", ...autoReloadLines(before), "After:", ...autoReloadLines(after)].join(
+				"\n",
+			);
+		}
+		case "creditsFirst":
+			return creditsFirstLine(result as CreditsFirst);
+		case "creditsFirst.set": {
+			const { before, after } = result as CreditsFirstChange;
+			return [`Before: ${creditsFirstLine(before)}`, `After: ${creditsFirstLine(after)}`].join(
 				"\n",
 			);
 		}

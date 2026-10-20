@@ -40,6 +40,19 @@ describe("parseArgs", () => {
 		expect(() => cmd("repos set acme/app --step-back-after-rounds 51")).toThrow(
 			"--step-back-after-rounds",
 		);
+		expect(cmd("repos set acme/app --escalate-to @alice,bob")).toMatchObject({
+			escalation: { contacts: ["@alice", "bob"] },
+		});
+		expect(
+			cmd("repos set acme/app --escalate-to alice --escalate-on upheld_critical,step_back"),
+		).toMatchObject({
+			escalation: { contacts: ["alice"], triggers: ["upheld_critical", "step_back"] },
+		});
+		expect(cmd("repos set acme/app --escalate-to none")).toMatchObject({ escalation: null });
+		expect(() => cmd("repos set acme/app --escalate-on step_back")).toThrow("--escalate-to");
+		expect(() => cmd("repos set acme/app --escalate-to a --escalate-on soon")).toThrow(
+			"--escalate-on",
+		);
 		expect(cmd("repos set acme/app --inline-suggestions on")).toMatchObject({
 			inlineSuggestions: true,
 		});

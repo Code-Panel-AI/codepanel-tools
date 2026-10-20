@@ -27,6 +27,13 @@ export type RoleSummary = {
 
 export type Repo = {
 	webhookId?: string | undefined;
+	learningDraft?:
+		| {
+				at: number;
+				outcome: "drafted" | "no_repeat_found" | "no_group" | "waiting" | "call_failed";
+				eligible: number;
+		  }
+		| undefined;
 	createdAt: number;
 	updatedAt: number;
 	githubOwner: string;
@@ -37,6 +44,12 @@ export type Repo = {
 	isActive: boolean;
 	settings: {
 		gate?: "all" | "off" | "critical" | "warning" | undefined;
+		escalation?:
+			| {
+					triggers?: ("upheld_critical" | "round_limit" | "step_back" | "novel")[] | undefined;
+					contacts: string[];
+			  }
+			| undefined;
 		inlineSuggestions?: boolean | undefined;
 		reviewSwitches?:
 			| {
@@ -44,13 +57,16 @@ export type Repo = {
 					REVIEW_REVIEWER_TOOLS?: boolean | undefined;
 					REVIEW_PRECISION_RULES?: boolean | undefined;
 					REVIEW_CHANGED_LINES?: boolean | undefined;
+					REVIEW_LEARNING_ATTRIBUTION?: boolean | undefined;
+					REVIEW_BASE_MERGE_SCOPE?: boolean | undefined;
+					REVIEW_PROOF_GRADING?: boolean | undefined;
+					REVIEW_NOVEL_ESCALATION?: boolean | undefined;
 			  }
 			| undefined;
 		triggers?:
 			| {
 					command?: { trigger: string } | undefined;
 					drafts: { include: boolean; reviewOnReady: boolean };
-					enabled: boolean;
 					events: {
 						onOpened: boolean;
 						onSynchronize: boolean;
@@ -58,6 +74,7 @@ export type Repo = {
 						onCommit: boolean;
 						onCommand: boolean;
 					};
+					enabled: boolean;
 					branches: { matchType: "all" | "include" | "exclude"; patterns: string[] };
 			  }
 			| undefined;
@@ -103,6 +120,7 @@ export type Panel = {
 		callable: boolean;
 		priced: boolean;
 	}[];
+	ready: boolean;
 	orchestrator: {
 		description?: string | undefined;
 		reasoningEffort?: string | undefined;
@@ -124,18 +142,165 @@ export type Panel = {
 		callable: boolean;
 		priced: boolean;
 	} | null;
-	ready: boolean;
 	isDefault: boolean;
 	_id: Id<"reviewPanels">;
 	budgetIsDefault: boolean;
 };
 
 export type Model = {
+	inputUsdPerMTok: number | null;
+	outputUsdPerMTok: number | null;
+	typicalCallUsd: number | null;
+	tiers: ModelTier[];
 	displayName?: string | undefined;
 	id: string;
 	provider: string;
 	source: "credits" | "own_key";
 	providerName: string;
+};
+
+export type PanelRecommendation = {
+	comparison?:
+		| { note: string; currentUsdPerRound: number | null; estimatedReductionUsdPerPr: number | null }
+		| undefined;
+	budget: { changes: string[]; maxUsdPerPr: number | null; fits: boolean | null };
+	nextAction: "none" | "apply";
+	reviewers: {
+		name: string;
+		tier: "balanced" | "economy" | "frontier";
+		provider: string;
+		source: "credits" | "own_key";
+		model: string;
+		reason: string;
+		role: string;
+		modelId: string;
+		reasoningEffort: "high" | "medium" | "low" | "none" | "xhigh" | "max";
+		usdPerRound: number | null;
+	}[];
+	orchestrator: {
+		tier: "balanced" | "economy" | "frontier";
+		provider: string;
+		source: "credits" | "own_key";
+		model: string;
+		reason: string;
+		modelId: string;
+		reasoningEffort: "high" | "medium" | "low" | "none" | "xhigh" | "max";
+		usdPerRound: number | null;
+	};
+	repo: string | null;
+	unchanged: boolean;
+	current: {
+		reviewers: {
+			reasoningEffort?: string | undefined;
+			name: string;
+			provider: string;
+			modelId: string;
+		}[];
+		orchestrator: {
+			reasoningEffort?: string | undefined;
+			name: string;
+			provider: string;
+			modelId: string;
+		} | null;
+	};
+	target: { scope: "default" | "repo" | "panel"; panelId: Id<"reviewPanels"> | null; note: string };
+	goal: { quality: "high" | "medium" | "low"; cost: "high" | "medium" | "low" };
+	estimate: {
+		note: string;
+		usdPerRound: number;
+		usdPerPr: number;
+		roundsPerPr: number;
+		basis: "repo_history" | "typical";
+		sampleRounds: number;
+		reviewerInputTokens: number;
+		reviewerOutputTokens: number;
+		orchestratorInputTokens: number;
+		orchestratorOutputTokens: number;
+		unpriced: string[];
+	};
+};
+
+export type PanelApplied = {
+	panelId: Id<"reviewPanels">;
+	repo: string | null;
+	recommendation: {
+		comparison?:
+			| {
+					note: string;
+					currentUsdPerRound: number | null;
+					estimatedReductionUsdPerPr: number | null;
+			  }
+			| undefined;
+		budget: { changes: string[]; maxUsdPerPr: number | null; fits: boolean | null };
+		nextAction: "none" | "apply";
+		reviewers: {
+			name: string;
+			tier: "balanced" | "economy" | "frontier";
+			provider: string;
+			source: "credits" | "own_key";
+			model: string;
+			reason: string;
+			role: string;
+			modelId: string;
+			reasoningEffort: "high" | "medium" | "low" | "none" | "xhigh" | "max";
+			usdPerRound: number | null;
+		}[];
+		orchestrator: {
+			tier: "balanced" | "economy" | "frontier";
+			provider: string;
+			source: "credits" | "own_key";
+			model: string;
+			reason: string;
+			modelId: string;
+			reasoningEffort: "high" | "medium" | "low" | "none" | "xhigh" | "max";
+			usdPerRound: number | null;
+		};
+		repo: string | null;
+		unchanged: boolean;
+		current: {
+			reviewers: {
+				reasoningEffort?: string | undefined;
+				name: string;
+				provider: string;
+				modelId: string;
+			}[];
+			orchestrator: {
+				reasoningEffort?: string | undefined;
+				name: string;
+				provider: string;
+				modelId: string;
+			} | null;
+		};
+		target: {
+			scope: "default" | "repo" | "panel";
+			panelId: Id<"reviewPanels"> | null;
+			note: string;
+		};
+		goal: { quality: "high" | "medium" | "low"; cost: "high" | "medium" | "low" };
+		estimate: {
+			note: string;
+			usdPerRound: number;
+			usdPerPr: number;
+			roundsPerPr: number;
+			basis: "repo_history" | "typical";
+			sampleRounds: number;
+			reviewerInputTokens: number;
+			reviewerOutputTokens: number;
+			orchestratorInputTokens: number;
+			orchestratorOutputTokens: number;
+			unpriced: string[];
+		};
+	};
+	undo: {
+		panelId: Id<"reviewPanels">;
+		orchestrator: {
+			reasoningEffort?: "high" | "medium" | "low" | "none" | "xhigh" | "max" | undefined;
+			provider: string;
+			modelId: string;
+		} | null;
+		budgetUsd: number | "default" | null;
+		reviewerIds: Id<"agents">[];
+	};
 };
 
 export type KeyStatus = {
@@ -165,30 +330,96 @@ export type ReviewSnapshot = {
 					| "provider_key_missing"
 					| "provider_key_invalid"
 					| "plan_required"
+					| "plan_limit"
 					| undefined;
 				error: string;
 		  }
 		| undefined;
 	payload?:
 		| {
+				convergence?:
+					| {
+							rounds: number;
+							firstGreen: number | null;
+							roundsByTrigger: { trigger: string; rounds: number }[];
+							afterGreen: {
+								rounds: number;
+								reBlocked: number;
+								byTrigger: { trigger: string; rounds: number; reBlocked: number }[];
+							};
+					  }
+					| null
+					| undefined;
+				escalation?:
+					| {
+							needsPerson?:
+								| {
+										category:
+											| "security_boundary"
+											| "data_loss"
+											| "product_decision"
+											| "irreversible_migration";
+										reason: string;
+										ref: string;
+								  }[]
+								| undefined;
+							trigger: "upheld_critical" | "round_limit" | "step_back" | "novel";
+							contacts: string[];
+							notifiedAt: number | null;
+							refs: string[];
+							reason: string;
+					  }
+					| null
+					| undefined;
+				localReview?:
+					| {
+							fixed: number;
+							verdict: "ready" | "not-ready" | null;
+							claim: "author";
+							headSha: string;
+							dropped: number;
+							agent: string | null;
+							counts: { critical: number; warning: number; suggestion: number };
+							total: number;
+							submittedAt: number;
+					  }
+					| null
+					| undefined;
 				nextAction?:
 					| {
-							reason: string;
-							action: "trigger" | "stop" | "fix" | "wait" | "rate" | "done";
+							action: "trigger" | "fix" | "wait" | "rate" | "done" | "stop" | "escalate";
 							refs: string[];
+							reason: string;
 					  }
 					| undefined;
 				stepBack?:
 					| {
-							reason: string;
 							action: "reconsider-approach";
+							reason: string;
 							rounds: number;
+							basis: "first-reported-after-round-1";
 							threshold: number;
 							totalFindings: number;
 							findingsAfterRound1: number;
-							basis: "first-reported-after-round-1";
 							setting: "stepBackAfterRounds";
 							offValue: 0;
+					  }
+					| null
+					| undefined;
+				keys?:
+					| {
+							reviewers: {
+								paidBy: "credits" | "plan" | "own_key";
+								modelId: string;
+								slug: string;
+								creditsSkipped: "balance" | "no_price" | "not_offered" | null;
+							}[];
+							orchestrator: {
+								paidBy: "credits" | "plan" | "own_key";
+								modelId: string;
+								slug: string;
+								creditsSkipped: "balance" | "no_price" | "not_offered" | null;
+							};
 					  }
 					| null
 					| undefined;
@@ -199,7 +430,6 @@ export type ReviewSnapshot = {
 							id: Id<"findings">;
 							dismissal: {
 								at: number;
-								by: string;
 								reason:
 									| "false_positive"
 									| "wrong_location"
@@ -208,6 +438,7 @@ export type ReviewSnapshot = {
 									| "deferred"
 									| "other"
 									| null;
+								by: string;
 								via: "github" | "agent" | "owner";
 								withdrawnReason: string | null;
 							};
@@ -222,12 +453,12 @@ export type ReviewSnapshot = {
 					| undefined;
 				pullRequest?:
 					| {
-							state: "merged" | "open" | "closed";
+							state: "merged" | "closed" | "open";
 							closedAt: number | null;
 							mergedAt: number | null;
 							mergeCommitSha: string | null;
 							mergedBy: string | null;
-							openAtClose: { count: number; refs: string[] } | null;
+							openAtClose: { refs: string[]; count: number } | null;
 					  }
 					| undefined;
 				disputes: {
@@ -241,11 +472,11 @@ export type ReviewSnapshot = {
 						| "deferred"
 						| "other";
 					status: "pending" | "withdrawn" | "upheld" | "revised" | "closed";
-					headSha: string;
-					by: string;
-					reason: string | null;
-					ref: string | null;
 					waiting: string | null;
+					headSha: string;
+					reason: string | null;
+					by: string;
+					ref: string | null;
 				}[];
 				findings: {
 					state?: "new" | "resolved" | "dismissed" | "open" | undefined;
@@ -255,21 +486,11 @@ export type ReviewSnapshot = {
 					answered?: boolean | undefined;
 					rated?: boolean | undefined;
 					id: Id<"findings">;
+					models: string[];
 					fingerprint: string;
 					reviewers: string[];
 					status: "new" | "open";
-					models: string[];
 					patch: string | null;
-					suggestion: string | null;
-					severity: "critical" | "warning" | "suggestion";
-					confidence: "high" | "medium" | "low" | null;
-					file: string;
-					line: number | null;
-					message: string;
-					failureScenario: string | null;
-					verify: string | null;
-					preExisting: string | null;
-					firstSeenRound: number;
 					dispute: {
 						at: number;
 						claim:
@@ -280,11 +501,22 @@ export type ReviewSnapshot = {
 							| "deferred"
 							| "other";
 						status: "pending" | "withdrawn" | "upheld" | "revised" | "closed";
-						headSha: string;
-						by: string;
-						reason: string | null;
 						waiting: string | null;
+						headSha: string;
+						reason: string | null;
+						by: string;
 					} | null;
+					suggestion: string | null;
+					severity: "critical" | "warning" | "suggestion";
+					confidence: "high" | "medium" | "low" | null;
+					file: string;
+					line: number | null;
+					message: string;
+					failureScenario: string | null;
+					verify: string | null;
+					preExisting: string | null;
+					proofGraded: string | null;
+					firstSeenRound: number;
 					ref: string | null;
 					lineSha: string;
 				}[];
@@ -293,6 +525,11 @@ export type ReviewSnapshot = {
 					tool?: string | undefined;
 					family: string;
 					evidence: string;
+				} | null;
+				authorProof: {
+					rung?: number | undefined;
+					source: "handoff" | "description";
+					text: string;
 				} | null;
 				handoff: {
 					headSha?: string | undefined;
@@ -303,10 +540,10 @@ export type ReviewSnapshot = {
 				verdict: "ready" | "blocked" | "needs-review";
 				round: number | null;
 				headSha: string | null;
+				counts: { critical: number; warning: number; suggestion: number; open: number };
 				ci: { pending: string[]; failed: string[]; passed: string[]; annotations: number } | null;
 				schemaVersion: number;
 				inProgress: boolean;
-				counts: { critical: number; warning: number; suggestion: number; open: number };
 				blockedBy: string[];
 				verdictReason: string | null;
 				nextRound: "will-run-on-push" | "cap-reached" | "disabled";
@@ -314,9 +551,9 @@ export type ReviewSnapshot = {
 		| undefined;
 	gate: {
 		status?: "posted" | "missing_permission" | "refused" | undefined;
+		unanswered: string[];
 		level: "all" | "off" | "critical" | "warning";
 		blocking: boolean;
-		unanswered: string[];
 	};
 	findings: {
 		state?: "new" | "resolved" | "dismissed" | "open" | undefined;
@@ -349,9 +586,9 @@ export type ReviewStatus = {
 	status:
 		| "reviewing"
 		| "failed"
+		| "ready"
 		| "initializing"
 		| "synthesizing"
-		| "ready"
 		| "chatting"
 		| "archived"
 		| null;
@@ -365,13 +602,14 @@ export type ReviewStatus = {
 		| "provider_key_missing"
 		| "provider_key_invalid"
 		| "plan_required"
+		| "plan_limit"
 		| null;
 	publishError: string | null;
 	found: boolean;
-	activity: string | null;
 	finished: boolean;
+	prState: "merged" | "closed" | "open" | null;
+	activity: string | null;
 	sessionHeadSha: string | null;
-	prState: "merged" | "open" | "closed" | null;
 };
 
 export type TriggerResult = {
@@ -387,9 +625,9 @@ export type SessionSummary = {
 	status:
 		| "reviewing"
 		| "failed"
+		| "ready"
 		| "initializing"
 		| "synthesizing"
-		| "ready"
 		| "chatting"
 		| "archived";
 	repo: string | null;
@@ -403,6 +641,7 @@ export type SessionSummary = {
 		| "provider_key_missing"
 		| "provider_key_invalid"
 		| "plan_required"
+		| "plan_limit"
 		| null;
 	nextAction: string | null;
 	publishError: string | null;
@@ -420,9 +659,9 @@ export type SessionDetail = {
 	status:
 		| "reviewing"
 		| "failed"
+		| "ready"
 		| "initializing"
 		| "synthesizing"
-		| "ready"
 		| "chatting"
 		| "archived";
 	repo: string | null;
@@ -436,6 +675,7 @@ export type SessionDetail = {
 		| "provider_key_missing"
 		| "provider_key_invalid"
 		| "plan_required"
+		| "plan_limit"
 		| null;
 	nextAction: string | null;
 	publishError: string | null;
@@ -488,7 +728,7 @@ export type Knowledge = {
 	}[];
 	verdicts: Verdict[];
 	learnings: {
-		prNumber?: number | undefined;
+		hits?: { lastPrNumber?: number | undefined; count: number; lastAt: number } | undefined;
 		drafted?:
 			| {
 					model?: string | undefined;
@@ -503,6 +743,7 @@ export type Knowledge = {
 					}[];
 			  }
 			| undefined;
+		prNumber?: number | undefined;
 		number: number;
 		scope: string;
 		createdAt: number;
@@ -516,7 +757,7 @@ export type Knowledge = {
 					by: "agent" | "person";
 			  }
 			| { status: "expired"; lastConfirmedAt: number };
-		source: "api" | "dashboard" | "comment" | "drafted";
+		source: "api" | "dashboard" | "drafted" | "comment";
 		text: string;
 		ref: string;
 	}[];
@@ -525,7 +766,7 @@ export type Knowledge = {
 export type KnowledgeReplaced = { rules: Counts; notes: Counts };
 
 export type Learning = {
-	prNumber?: number | undefined;
+	hits?: { lastPrNumber?: number | undefined; count: number; lastAt: number } | undefined;
 	drafted?:
 		| {
 				model?: string | undefined;
@@ -540,6 +781,7 @@ export type Learning = {
 				}[];
 		  }
 		| undefined;
+	prNumber?: number | undefined;
 	number: number;
 	scope: string;
 	createdAt: number;
@@ -553,66 +795,46 @@ export type Learning = {
 				by: "agent" | "person";
 		  }
 		| { status: "expired"; lastConfirmedAt: number };
-	source: "api" | "dashboard" | "comment" | "drafted";
+	source: "api" | "dashboard" | "drafted" | "comment";
 	text: string;
 	ref: string;
 };
 
 export type LearningAdded = { ref: string; number: number };
 
-export type LearningRated = { target: string; outcome: "updated" | "created" };
+export type LearningRated = { target: string; outcome: "created" | "updated" };
+
+export type ReviewBrief = {
+	repo: string;
+	gateLevel: "all" | "off" | "critical" | "warning";
+	paths: { used: string[]; dropped: number; refused: number; max: number };
+	seats: BriefSeat[];
+	learnings: BriefLearning[];
+	droppedLearnings: string[];
+	chars: number;
+	text: string;
+};
+
+export type LocalReviewStored = {
+	headSha: string;
+	atHead: boolean | null;
+	counts: { critical: number; warning: number; suggestion: number };
+	total: number;
+	fixed: number;
+	dropped: number;
+	edited: number;
+} & { ok: true; shownOn: string };
 
 export type Quality = {
 	findings: number;
-	repo: string;
-	truncated: boolean;
-	byModel: {
-		key: string;
-		reported: number;
-		verified: {
-			interval: { high: number; low: number } | null;
-			insufficientData: boolean;
-			truePositives: {
-				total: number;
-				disputesUpheld: number;
-				disputesRevised: number;
-				upByPerson: number;
-			};
-			falsePositives: {
-				total: number;
-				disputesWithdrawn: number;
-				downByPerson: number;
-				dismissedByPerson: number;
-				notWorthFixing: number;
-			};
-			sample: number;
-			coverage: number;
-			precision: number | null;
-		};
-		unverified: {
-			addressedByCommit: number;
-			resolution: {
-				touched: number;
-				moved: number;
-				untouched: number;
-				unclassified: number;
-				fileRemoved: number;
-				fileLeft: number;
-				unrecorded: number;
-			};
-			upByAgents: number;
-			downByAgents: number;
-			unverifiableDismissals: number;
-		};
-	}[];
-	days: number;
 	since: number;
+	days: number;
+	unattributed: number;
+	truncated: boolean;
 	overall: {
 		key: string;
-		reported: number;
 		verified: {
 			interval: { high: number; low: number } | null;
-			insufficientData: boolean;
 			truePositives: {
 				total: number;
 				disputesUpheld: number;
@@ -627,9 +849,11 @@ export type Quality = {
 				notWorthFixing: number;
 			};
 			sample: number;
-			coverage: number;
 			precision: number | null;
+			coverage: number;
+			insufficientData: boolean;
 		};
+		reported: number;
 		unverified: {
 			addressedByCommit: number;
 			resolution: {
@@ -646,14 +870,11 @@ export type Quality = {
 			unverifiableDismissals: number;
 		};
 	};
-	unattributed: number;
-	minSample: number;
-	byRole: {
+	repo: string;
+	byModel: {
 		key: string;
-		reported: number;
 		verified: {
 			interval: { high: number; low: number } | null;
-			insufficientData: boolean;
 			truePositives: {
 				total: number;
 				disputesUpheld: number;
@@ -668,9 +889,51 @@ export type Quality = {
 				notWorthFixing: number;
 			};
 			sample: number;
-			coverage: number;
 			precision: number | null;
+			coverage: number;
+			insufficientData: boolean;
 		};
+		reported: number;
+		unverified: {
+			addressedByCommit: number;
+			resolution: {
+				touched: number;
+				moved: number;
+				untouched: number;
+				unclassified: number;
+				fileRemoved: number;
+				fileLeft: number;
+				unrecorded: number;
+			};
+			upByAgents: number;
+			downByAgents: number;
+			unverifiableDismissals: number;
+		};
+	}[];
+	minSample: number;
+	byRole: {
+		key: string;
+		verified: {
+			interval: { high: number; low: number } | null;
+			truePositives: {
+				total: number;
+				disputesUpheld: number;
+				disputesRevised: number;
+				upByPerson: number;
+			};
+			falsePositives: {
+				total: number;
+				disputesWithdrawn: number;
+				downByPerson: number;
+				dismissedByPerson: number;
+				notWorthFixing: number;
+			};
+			sample: number;
+			precision: number | null;
+			coverage: number;
+			insufficientData: boolean;
+		};
+		reported: number;
 		unverified: {
 			addressedByCommit: number;
 			resolution: {
@@ -689,10 +952,8 @@ export type Quality = {
 	}[];
 	bySeverity: {
 		key: string;
-		reported: number;
 		verified: {
 			interval: { high: number; low: number } | null;
-			insufficientData: boolean;
 			truePositives: {
 				total: number;
 				disputesUpheld: number;
@@ -707,9 +968,11 @@ export type Quality = {
 				notWorthFixing: number;
 			};
 			sample: number;
-			coverage: number;
 			precision: number | null;
+			coverage: number;
+			insufficientData: boolean;
 		};
+		reported: number;
 		unverified: {
 			addressedByCommit: number;
 			resolution: {
@@ -728,10 +991,8 @@ export type Quality = {
 	}[];
 	byConfidence: {
 		key: string;
-		reported: number;
 		verified: {
 			interval: { high: number; low: number } | null;
-			insufficientData: boolean;
 			truePositives: {
 				total: number;
 				disputesUpheld: number;
@@ -746,9 +1007,11 @@ export type Quality = {
 				notWorthFixing: number;
 			};
 			sample: number;
-			coverage: number;
 			precision: number | null;
+			coverage: number;
+			insufficientData: boolean;
 		};
+		reported: number;
 		unverified: {
 			addressedByCommit: number;
 			resolution: {
@@ -767,10 +1030,8 @@ export type Quality = {
 	}[];
 	bySeverityConfidence: {
 		key: string;
-		reported: number;
 		verified: {
 			interval: { high: number; low: number } | null;
-			insufficientData: boolean;
 			truePositives: {
 				total: number;
 				disputesUpheld: number;
@@ -785,9 +1046,11 @@ export type Quality = {
 				notWorthFixing: number;
 			};
 			sample: number;
-			coverage: number;
 			precision: number | null;
+			coverage: number;
+			insufficientData: boolean;
 		};
+		reported: number;
 		unverified: {
 			addressedByCommit: number;
 			resolution: {
@@ -807,23 +1070,21 @@ export type Quality = {
 } & {
 	convergence: {
 		pullRequests: number;
-		repo: string;
-		truncated: boolean;
-		days: number;
 		since: number;
-		minPullRequests: number;
+		days: number;
+		truncated: boolean;
 		overall: {
 			pullRequests: number;
 			key: string;
 			rounds: { empty: number; mean: number | null; p90: number | null; fiveOrMore: number | null };
 			insufficientData: boolean;
-			firstGreen: { afterRound1: number | null; meanRounds: number | null; never: number };
+			firstGreen: { never: number; afterRound1: number | null; meanRounds: number | null };
 			afterGreen: {
 				rounds: number;
-				shareOfRounds: number | null;
 				reBlocked: number;
-				reBlockedShare: number | null;
 				byTrigger: { trigger: string; rounds: number; reBlocked: number }[];
+				shareOfRounds: number | null;
+				reBlockedShare: number | null;
 			};
 			findingsByRound: {
 				findings: number;
@@ -833,18 +1094,20 @@ export type Quality = {
 				suggestion: number;
 			}[];
 		};
+		repo: string;
+		minPullRequests: number;
 		byPipeline: {
 			pullRequests: number;
 			key: string;
 			rounds: { empty: number; mean: number | null; p90: number | null; fiveOrMore: number | null };
 			insufficientData: boolean;
-			firstGreen: { afterRound1: number | null; meanRounds: number | null; never: number };
+			firstGreen: { never: number; afterRound1: number | null; meanRounds: number | null };
 			afterGreen: {
 				rounds: number;
-				shareOfRounds: number | null;
 				reBlocked: number;
-				reBlockedShare: number | null;
 				byTrigger: { trigger: string; rounds: number; reBlocked: number }[];
+				shareOfRounds: number | null;
+				reBlockedShare: number | null;
 			};
 			findingsByRound: {
 				findings: number;
@@ -854,6 +1117,64 @@ export type Quality = {
 				suggestion: number;
 			}[];
 		}[];
+	} & {
+		loop?:
+			| {
+					pullRequests: number;
+					truncated: boolean;
+					overall: {
+						served: number;
+						clients: { served: number; client: string; pluginVersion: string | null }[];
+						pullRequests: number;
+						key: string;
+						rounds: number;
+						insufficientData: boolean;
+						pushes: number;
+						pushesPerRound: number | null;
+						bytesServed: number;
+						bytesServedPerRound: number | null;
+						toolCalls: number;
+						toolCallsPerRound: number | null;
+						afterServed: {
+							served: number;
+							action: string;
+							next: {
+								push: number;
+								trigger: number;
+								rating: number;
+								dispute: number;
+								none: number;
+							};
+						}[];
+					};
+					excluded: number;
+					byGuidance: {
+						served: number;
+						clients: { served: number; client: string; pluginVersion: string | null }[];
+						pullRequests: number;
+						key: string;
+						rounds: number;
+						insufficientData: boolean;
+						pushes: number;
+						pushesPerRound: number | null;
+						bytesServed: number;
+						bytesServedPerRound: number | null;
+						toolCalls: number;
+						toolCallsPerRound: number | null;
+						afterServed: {
+							served: number;
+							action: string;
+							next: {
+								push: number;
+								trigger: number;
+								rating: number;
+								dispute: number;
+								none: number;
+							};
+						}[];
+					}[];
+			  }
+			| undefined;
 	};
 };
 
@@ -870,8 +1191,8 @@ export type BudgetState = {
 					remainingUsd: number | null;
 					limitedBy: "account" | "repo" | null;
 				};
-				heldUsd: number | null;
 				remainingUsd: number | null;
+				heldUsd: number | null;
 		  }
 		| undefined;
 	account: {
@@ -879,8 +1200,8 @@ export type BudgetState = {
 		source: "none" | "default" | "custom";
 		spentUsd: number | null;
 		limitUsd: number | null;
-		heldUsd: number | null;
 		remainingUsd: number | null;
+		heldUsd: number | null;
 	};
 	month: string;
 	enforced: true;
@@ -900,8 +1221,8 @@ export type BudgetChange = {
 						remainingUsd: number | null;
 						limitedBy: "account" | "repo" | null;
 					};
-					heldUsd: number | null;
 					remainingUsd: number | null;
+					heldUsd: number | null;
 			  }
 			| undefined;
 		account: {
@@ -909,8 +1230,8 @@ export type BudgetChange = {
 			source: "none" | "default" | "custom";
 			spentUsd: number | null;
 			limitUsd: number | null;
-			heldUsd: number | null;
 			remainingUsd: number | null;
+			heldUsd: number | null;
 		};
 		month: string;
 		enforced: true;
@@ -928,8 +1249,8 @@ export type BudgetChange = {
 						remainingUsd: number | null;
 						limitedBy: "account" | "repo" | null;
 					};
-					heldUsd: number | null;
 					remainingUsd: number | null;
+					heldUsd: number | null;
 			  }
 			| undefined;
 		account: {
@@ -937,8 +1258,8 @@ export type BudgetChange = {
 			source: "none" | "default" | "custom";
 			spentUsd: number | null;
 			limitUsd: number | null;
-			heldUsd: number | null;
 			remainingUsd: number | null;
+			heldUsd: number | null;
 		};
 		month: string;
 		enforced: true;
@@ -947,7 +1268,7 @@ export type BudgetChange = {
 };
 
 export type AutoReload = {
-	status: "off" | "pending" | "on" | "turned_off" | "capped";
+	status: "off" | "pending" | "capped" | "on" | "turned_off";
 	enabled: boolean;
 	message: string | null;
 	month: string;
@@ -968,6 +1289,7 @@ export type AutoReload = {
 		| "billing_error"
 		| null;
 	offAt: number | null;
+	feeFreeUsd: number;
 	chargeUsd: number;
 	reloadedUsd: number;
 	disputeOpen: boolean;
@@ -976,7 +1298,7 @@ export type AutoReload = {
 
 export type AutoReloadChange = {
 	before: {
-		status: "off" | "pending" | "on" | "turned_off" | "capped";
+		status: "off" | "pending" | "capped" | "on" | "turned_off";
 		enabled: boolean;
 		message: string | null;
 		month: string;
@@ -997,13 +1319,14 @@ export type AutoReloadChange = {
 			| "billing_error"
 			| null;
 		offAt: number | null;
+		feeFreeUsd: number;
 		chargeUsd: number;
 		reloadedUsd: number;
 		disputeOpen: boolean;
 		packOptionsUsd: number[];
 	};
 	after: {
-		status: "off" | "pending" | "on" | "turned_off" | "capped";
+		status: "off" | "pending" | "capped" | "on" | "turned_off";
 		enabled: boolean;
 		message: string | null;
 		month: string;
@@ -1024,6 +1347,7 @@ export type AutoReloadChange = {
 			| "billing_error"
 			| null;
 		offAt: number | null;
+		feeFreeUsd: number;
 		chargeUsd: number;
 		reloadedUsd: number;
 		disputeOpen: boolean;
@@ -1036,6 +1360,13 @@ export type AutoReloadUpdate = {
 	thresholdUsd?: number | undefined;
 	packUsd?: number | undefined;
 	monthlyCapUsd?: number | undefined;
+};
+
+export type CreditsFirst = { creditsFirst: boolean; source: "default" | "set" };
+
+export type CreditsFirstChange = {
+	before: { creditsFirst: boolean; source: "default" | "set" };
+	after: { creditsFirst: boolean; source: "default" | "set" };
 };
 
 export type RatingResult = {
@@ -1064,6 +1395,22 @@ export type Question = {
 	model: string | null;
 	createdAt: number;
 	answeredAt: number | null;
+};
+
+export type SpendReport = {
+	suggestions: { id: string; title: string; action: string; evidence: string }[];
+	repo: string;
+	month: string;
+	totalUsd: number;
+	ownKeyUsd: number;
+	creditsUsd: number;
+	calls: number;
+	unpricedCalls: number;
+	itemizedCalls: number;
+	complete: boolean;
+	groupLimitReached: boolean;
+	byModel: ModelCalls[];
+	nextAction: string;
 };
 
 export type ModelTier = "balanced" | "economy" | "frontier";
@@ -1115,9 +1462,32 @@ export type VerdictBy = "agent" | "person";
 
 export type Counts = { added: number; updated: number; removed: number };
 
+export type BriefSeat = {
+	name: string;
+	prompt: string | null;
+	uiOnly: boolean;
+};
+
+export type BriefLearning = {
+	ref: string;
+	scope: string;
+	text: string;
+};
+
 export type DisputeAnswer = {
 	status: "pending" | "withdrawn" | "upheld" | "revised" | "closed";
 	reason?: string | undefined;
 };
 
-export type RecordOutcome = "updated" | "created";
+export type RecordOutcome = "created" | "updated";
+
+export type ModelCalls = {
+	role: "chat" | "reviewer" | "orchestrator";
+	provider: string;
+	modelId: string;
+	usd: number;
+	calls: number;
+	failedCalls: number;
+};
+
+export type CallRole = "chat" | "reviewer" | "orchestrator";

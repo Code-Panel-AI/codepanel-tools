@@ -6,12 +6,14 @@
 import { z } from "zod";
 import { GATE_LEVELS } from "../lib/client";
 import { triggerAndWait } from "../lib/wait";
+import { BRIEF_TOOLS, LOCAL_REVIEW_TOOL } from "./briefTools";
 import { BUDGET_TOOLS } from "./budgetTools";
-import { panelId, pr, repo, roundSettings, rounds, type ToolDef, tool } from "./define";
+import { escalation, panelId, pr, repo, roundSettings, rounds, type ToolDef, tool } from "./define";
 import { AGENT_TOOLS, FINDING_TOOLS } from "./findingTools";
 import { HANDOFF_TOOL, HANDOFF_TOOLS } from "./handoffTool";
 import { KNOWLEDGE_TOOLS } from "./knowledgeTools";
 import { ADD_LEARNING_TOOL, LEARNING_TOOLS, RATE_LEARNING_TOOL } from "./learningTools";
+import { PANEL_PLAN_TOOLS } from "./panelPlanTools";
 import { QUALITY_TOOLS } from "./qualityTools";
 import { reviewSwitches, SWITCH_TOOLS } from "./switchTools";
 import { timeoutSeconds, WAIT_TOOLS, waitOptions } from "./waitTools";
@@ -33,7 +35,7 @@ export const TOOLS: ToolDef[] = [
 		name: "whoami",
 		title: "Show current account",
 		description:
-			"The GitHub account and scopes of the configured CodePanel API token, and its subscription: when subscription.active is false, reviews are refused until the person subscribes at subscription.nextAction.",
+			"The GitHub account and scopes of the configured CodePanel API token, and its subscription: when subscription.active is false, reviews are refused until the person subscribes at subscription.nextAction. subscription.plan gives the plan, its pull requests this month (prsThisMonth of prsPerMonth) and allowance (within, near, grace, paused); when paused, new pull requests are refused with plan_limit until the 1st.",
 		input: {},
 		writes: false,
 		run: (c) => c.me(),
@@ -78,7 +80,7 @@ export const TOOLS: ToolDef[] = [
 		name: "update_repo_settings",
 		title: "Update repository settings",
 		description:
-			"Turn automatic review on or off for a repository, cap its automatic review rounds per pull request, set how far bots may extend them, set the round from which reviews advise stepping back (stepBackAfterRounds, 0 off), pin it to a specific panel (null for the default), post inline suggestion comments on the diff (inlineSuggestions), choose which findings must be answered before its CodePanel commit status passes (gate), choose whether reviews read its AGENTS.md and CLAUDE.md, or set its own review switches (reviewSwitches).",
+			"Turn automatic review on or off for a repository, cap its automatic review rounds per pull request, set how far bots may extend them, set the round from which reviews advise stepping back (stepBackAfterRounds, 0 off), pin it to a specific panel (null for the default), post inline suggestion comments on the diff (inlineSuggestions), choose which findings must be answered before its CodePanel commit status passes (gate), choose whether reviews read its AGENTS.md and CLAUDE.md, set its own review switches (reviewSwitches), or name people to ask about findings no agent can settle (escalation).",
 		input: {
 			repo,
 			autoReview: z.boolean().optional(),
@@ -103,6 +105,7 @@ export const TOOLS: ToolDef[] = [
 					"Read AGENTS.md and CLAUDE.md from the base branch as review context (off unless turned on)",
 				),
 			reviewSwitches,
+			escalation,
 		},
 		writes: true,
 		run: (c, a) => c.updateRepoSettings(a),
@@ -199,6 +202,7 @@ export const TOOLS: ToolDef[] = [
 		writes: true,
 		run: (c, a) => c.updatePanel(a),
 	}),
+	...PANEL_PLAN_TOOLS,
 
 	// --- keys --------------------------------------------------------------
 	tool({
@@ -240,6 +244,7 @@ export const TOOLS: ToolDef[] = [
 	...WAIT_TOOLS,
 	...KNOWLEDGE_TOOLS,
 	...LEARNING_TOOLS,
+	...BRIEF_TOOLS,
 	...QUALITY_TOOLS,
 	...BUDGET_TOOLS,
 	...SWITCH_TOOLS,
@@ -257,7 +262,7 @@ export const TOOLS: ToolDef[] = [
 		name: "get_review",
 		title: "Get review",
 		description:
-			"The current review of a pull request. Act on payload.nextAction: action is fix (the findings in refs), wait (a round or a dispute is under way), trigger (start one with trigger_review, which spends credits), rate (rate each ref with rate_finding), done or stop (report reason; do not retry in a loop), with refs and a reason. payload.findings lists every open finding (id, ref like F3, state new|open, answered, rated, dispute and evidence); the top-level findings list is a deprecated copy. payload.reviewedSha is the commit reviewed: right after a push it is still the previous one, so call wait_for_review with headSha first. gate.blocking says whether the merge gate still blocks. payload.pullRequest.state is open, merged or closed; once it is merged or closed, nextAction is done and openAtClose lists the findings it left open.",
+			"The current review of a pull request. Act on payload.nextAction: action is fix (the findings in refs), wait (a round or a dispute is under way), trigger (start one with trigger_review, which spends credits), rate (rate each ref with rate_finding), escalate (a person was asked to decide the refs: do not push or dispute for them; report it and stop), done or stop (report reason; do not retry in a loop), with refs and a reason. payload.findings lists every open finding (id, ref like F3, state new|open, answered, rated, dispute and evidence); the top-level findings list is a deprecated copy. payload.reviewedSha is the commit reviewed: right after a push it is still the previous one, so call wait_for_review with headSha first. gate.blocking says whether the merge gate still blocks. payload.pullRequest.state is open, merged or closed; once it is merged or closed, nextAction is done and openAtClose lists the findings it left open.",
 		input: { repo, pr },
 		writes: false,
 		run: (c, a) => c.getReview(a.repo, a.pr),
@@ -295,7 +300,13 @@ export const TOOLS: ToolDef[] = [
 ];
 
 /** Tools whose writes count differently from an agent than from the owner. */
-const AGENT_NAMED = new Set([...AGENT_TOOLS, ADD_LEARNING_TOOL, RATE_LEARNING_TOOL, HANDOFF_TOOL]);
+const AGENT_NAMED = new Set([
+	...AGENT_TOOLS,
+	ADD_LEARNING_TOOL,
+	RATE_LEARNING_TOOL,
+	HANDOFF_TOOL,
+	LOCAL_REVIEW_TOOL,
+]);
 
 /**
  * Ratings, dismissals, questions, learnings and handoffs through MCP come from an agent

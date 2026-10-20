@@ -11,6 +11,8 @@ import type {
 	BudgetChange,
 	BudgetState,
 	ConnectableRepo,
+	CreditsFirst,
+	CreditsFirstChange,
 	DismissDispute,
 	FindingList,
 	KeyStatus,
@@ -19,6 +21,7 @@ import type {
 	Learning,
 	LearningAdded,
 	LearningRated,
+	LocalReviewStored,
 	Model,
 	Panel,
 	Quality,
@@ -26,6 +29,7 @@ import type {
 	RatingResult,
 	ReopenResult,
 	Repo,
+	ReviewBrief,
 	ReviewSnapshot,
 	ReviewStatus,
 	RoleSummary,
@@ -33,10 +37,15 @@ import type {
 	SessionSummary,
 	TriggerResult,
 } from "./apiTypes";
-import type { ClientConfig } from "./clientConfig";
+import { type ClientConfig, callerHeaders } from "./clientConfig";
 
 export type * from "./apiTypes";
-export { type ClientConfig, configFromEnv, traceparentFromEnv } from "./clientConfig";
+export {
+	type CallerInfo,
+	type ClientConfig,
+	configFromEnv,
+	traceparentFromEnv,
+} from "./clientConfig";
 
 export type ReasoningEffort = "none" | "low" | "medium" | "high" | "xhigh" | "max";
 
@@ -57,6 +66,10 @@ export const REPO_SWITCHES = [
 	"REVIEW_REVIEWER_TOOLS",
 	"REVIEW_PRECISION_RULES",
 	"REVIEW_CHANGED_LINES",
+	"REVIEW_LEARNING_ATTRIBUTION",
+	"REVIEW_BASE_MERGE_SCOPE",
+	"REVIEW_PROOF_GRADING",
+	"REVIEW_NOVEL_ESCALATION",
 ] as const;
 export type RepoSwitch = (typeof REPO_SWITCHES)[number];
 /** true or false sets a switch for the repository, null follows the deployment again. */
@@ -78,6 +91,20 @@ export type ReviewSwitchStates = Record<
 /** Which findings must be answered before the commit status passes. Mirrors GATE_LEVELS in convex/lib/gate.ts. */
 export const GATE_LEVELS = ["off", "critical", "warning", "all"] as const;
 export type GateLevel = (typeof GATE_LEVELS)[number];
+
+/** When findings are handed to a person. Mirrors ESCALATION_TRIGGERS in convex/lib/escalation.ts. */
+export const ESCALATION_TRIGGERS = [
+	"upheld_critical",
+	"round_limit",
+	"step_back",
+	"novel",
+] as const;
+export type EscalationTrigger = (typeof ESCALATION_TRIGGERS)[number];
+/** Who to ask about findings no agent can settle; `triggers` absent means upheld_critical and round_limit. */
+export interface EscalationSetting {
+	contacts: string[];
+	triggers?: EscalationTrigger[];
+}
 
 /** Why a finding was rated so. Mirrors FEEDBACK_REASONS in convex/lib/feedback.ts. */
 export const FEEDBACK_REASONS = [
@@ -127,6 +154,22 @@ export interface HandoffResult {
 	usedBy: string;
 }
 
+/** The author agent's own review of a commit, run from the brief (POST /reviews/local). */
+export interface LocalReviewArgs {
+	repo: string;
+	headSha: string;
+	pr?: number;
+	agent?: string;
+	verdict?: "ready" | "not-ready";
+	findings: ReadonlyArray<{
+		file: string;
+		line?: number;
+		severity: "critical" | "warning" | "suggestion";
+		message: string;
+		fixed: boolean;
+	}>;
+}
+
 /** A rating names its finding by id, or by repo, PR and ref ("F3", or "review"). */
 export interface RateArgs {
 	findingId?: string;
@@ -137,6 +180,9 @@ export interface RateArgs {
 	/** A FeedbackReason, spelled as leniently as the server reads it ("false-positive", "fp"). */
 	reason?: string;
 	note?: string;
+	/** Aliases for reason and note; accepted for single and batch ratings. */
+	verdict?: string;
+	comment?: string;
 	/** Set when an AI agent is rating, e.g. "claude-code". */
 	agent?: string;
 }
@@ -279,6 +325,37 @@ function errorFrom(response: Response, body: unknown): CodePanelError {
 	});
 }
 
+/** Paths GET /review-brief reads (MAX_BRIEF_PATHS in convex/lib/reviewBrief.ts). */
+export const MAX_BRIEF_PATHS = 200;
+
+/** Characters of encoded paths one GET carries, well inside common proxy URL limits. */
+export const MAX_BRIEF_PATHS_QUERY_CHARS = 16_000;
+
+/**
+ * The `paths` query value: comma-separated, as the route splits it. A path
+ * with a comma cannot travel that way, so it is skipped, as is every path
+ * past MAX_BRIEF_PATHS or MAX_BRIEF_PATHS_QUERY_CHARS; `skipped` counts them.
+ */
+export function briefPathsParam(paths: ReadonlyArray<string>): {
+	param: string | undefined;
+	skipped: number;
+} {
+	const kept: string[] = [];
+	let size = 0;
+	for (const path of paths) {
+		// Measured as sent, with the encoder request() uses, plus an encoded comma.
+		const encoded = new URLSearchParams({ p: path }).toString().length - 2 + 3;
+		const fits = size + encoded <= MAX_BRIEF_PATHS_QUERY_CHARS;
+		if (path.includes(",") || !fits || kept.length >= MAX_BRIEF_PATHS) continue;
+		kept.push(path);
+		size += encoded;
+	}
+	return {
+		param: kept.length > 0 ? kept.join(",") : undefined,
+		skipped: paths.length - kept.length,
+	};
+}
+
 export class CodePanelClient {
 	private readonly base: string;
 	private readonly fetchImpl: typeof fetch;
@@ -303,12 +380,16 @@ export class CodePanelClient {
 		);
 	}
 
-	private async request<T>(method: "GET" | "POST", path: string, input: Input = {}): Promise<T> {
+	/** Public so AdminClient (adminClient.ts) reuses the auth, query and error handling. */
+	async request<T>(method: "GET" | "POST", path: string, input: Input = {}): Promise<T> {
 		const defined = Object.entries(input).filter(([, v]) => v !== undefined);
 		let url = `${this.base}${path}`;
 		const init: RequestInit = {
 			method,
-			headers: { Authorization: `Bearer ${this.config.token}` },
+			headers: {
+				Authorization: `Bearer ${this.config.token}`,
+				...callerHeaders(this.config.caller?.()),
+			},
 		};
 		if (this.signal) init.signal = this.signal;
 		if (method === "GET") {
@@ -352,6 +433,7 @@ export class CodePanelClient {
 		gate?: GateLevel;
 		agentFiles?: boolean;
 		reviewSwitches?: ReviewSwitchesUpdate;
+		escalation?: EscalationSetting | null;
 	}) => this.request<Ok & { reviewSwitches: ReviewSwitchStates }>("POST", "/repos/settings", args);
 	getRepoSwitches = (repo: string) =>
 		this.request<{ repo: string; reviewSwitches: ReviewSwitchStates }>("GET", "/repos/switches", {
@@ -366,6 +448,10 @@ export class CodePanelClient {
 	getAutoReload = () => this.request<AutoReload>("GET", "/auto-reload");
 	setAutoReload = (args: AutoReloadUpdate) =>
 		this.request<AutoReloadChange>("POST", "/auto-reload", args);
+	getCreditsFirst = () => this.request<CreditsFirst>("GET", "/credits-first");
+	/** null goes back to the default (on). */
+	setCreditsFirst = (enabled: boolean | null) =>
+		this.request<CreditsFirstChange>("POST", "/credits-first", { enabled });
 
 	listPanels = () => this.request<Panel[]>("GET", "/panels");
 	listModels = () => this.request<Model[]>("GET", "/models");
@@ -435,8 +521,16 @@ export class CodePanelClient {
 		this.request<LearningAdded>("POST", "/learnings", { ...args });
 	rateLearning = (args: RateLearningArgs) =>
 		this.request<LearningRated>("POST", "/learnings/feedback", { ...args });
+	/** None means every active learning; `paths.used` in the reply says which were read. */
+	getReviewBrief = (repo: string, paths?: ReadonlyArray<string>) =>
+		this.request<ReviewBrief>("GET", "/review-brief", {
+			repo,
+			paths: briefPathsParam(paths ?? []).param,
+		});
 	getQuality = (repo: string, days?: number) =>
 		this.request<Quality>("GET", "/quality", { repo, days });
 	submitHandoff = (args: HandoffArgs) =>
 		this.request<HandoffResult>("POST", "/reviews/handoff", { ...args });
+	submitLocalReview = (args: LocalReviewArgs) =>
+		this.request<LocalReviewStored>("POST", "/reviews/local", { ...args });
 }
