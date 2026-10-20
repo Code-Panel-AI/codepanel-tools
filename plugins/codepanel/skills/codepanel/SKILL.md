@@ -34,7 +34,7 @@ use `codepanel handoff owner/repo#123 --sha <full-head-sha> --author-agent
 actual tool and model, not these example values. `agent` identifies the
 submitting client; it is not used as the code author. Authorship metadata is
 read even when handoff prompts are disabled and expires on a new head commit.
-PR-description author declarations take precedence over handoff metadata.
+Explicit current-head handoff author labels take precedence over PR-description declarations.
 
 - Findings are numbered `F1`, `F2`, ... and keep their numbers across rounds.
 - The header names the commit the line numbers refer to ("Line numbers refer to `abc1234`"). If it is not the commit you just pushed, the review of your push is still running. A round usually takes a few minutes; check again every minute or so.
