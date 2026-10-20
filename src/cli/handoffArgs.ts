@@ -15,6 +15,8 @@ export interface HandoffCommand {
 	file?: string;
 	sha?: string;
 	agent?: string;
+	authorAgent?: string;
+	authorModel?: string;
 }
 
 interface FlagReader {
@@ -37,7 +39,27 @@ export function parseHandoff(
 	if (sha !== undefined && !/^[0-9a-f]{7,40}$/i.test(sha)) {
 		throw new UsageError("--sha must be a commit sha (7 to 40 hex characters)");
 	}
-	return { kind: "handoff", repo, pr, text, file, sha, agent: r.flag("agent") };
+	const authorAgent = r.flag("author-agent");
+	const authorModel = r.flag("author-model");
+	if (
+		(authorAgent !== undefined || authorModel !== undefined) &&
+		!/^[0-9a-f]{40}$/i.test(sha ?? "")
+	) {
+		throw new UsageError(
+			"--author-agent/--author-model require --sha with the full 40-character head commit",
+		);
+	}
+	return {
+		kind: "handoff",
+		repo,
+		pr,
+		text,
+		file,
+		sha,
+		agent: r.flag("agent"),
+		authorAgent,
+		authorModel,
+	};
 }
 
 /**

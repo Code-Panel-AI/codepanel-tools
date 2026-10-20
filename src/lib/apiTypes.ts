@@ -1413,6 +1413,22 @@ export type SpendReport = {
 	nextAction: string;
 };
 
+export type RepoAuthorship = {
+	limit: number;
+	sampledRounds: number;
+	unknownAuthorRounds: number;
+	stampedRounds: number;
+	singleProviderRounds: number;
+	sameAuthorFamilyRounds: number;
+	authors: { family: string; rounds: number }[];
+	latestAuthor: {
+		model?: string | undefined;
+		tool?: string | undefined;
+		family: string;
+		evidence: string;
+	} | null;
+};
+
 export type ModelTier = "balanced" | "economy" | "frontier";
 
 export type Effort = "high" | "medium" | "low";

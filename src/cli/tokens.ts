@@ -15,6 +15,8 @@ const BOOLEAN_FLAGS = new Set(["json", "connectable", "trigger", "all", "help", 
 const VALUE_FLAGS = new Set([
 	"agent",
 	"agent-files",
+	"author-agent",
+	"author-model",
 	"as-of",
 	"auto-review",
 	"bot-max-rounds",

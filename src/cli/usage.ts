@@ -53,7 +53,7 @@ which take precedence.
   codepanel learn <owner/name> <text...> [--scope <path>] [--pr n] [--agent name]
   codepanel learning <owner/name> L3 up|down [--reason r] [--note text] [--pr n] [--agent name]
   codepanel quality <owner/name> [--days n]
-  codepanel handoff <owner/name#123> --text <note> | --file <path|-> [--sha <commit>] [--agent name]
+  codepanel handoff <owner/name#123> --text <note> | --file <path|-> [--sha <commit>] [--agent name] [--author-agent name] [--author-model name]
   codepanel rounds <owner/name#123> <n|+n|stop|reset>
   codepanel ask <owner/name#123> [F3] <question> [--agent name] [--timeout <secs>]
 

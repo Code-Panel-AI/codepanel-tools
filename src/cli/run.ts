@@ -190,6 +190,8 @@ export async function execute(
 				pr: command.pr,
 				text: await handoffText(command, options.signal),
 				sha: command.sha,
+				authorAgent: command.authorAgent,
+				authorModel: command.authorModel,
 				agent: command.agent ?? process.env.CODEPANEL_AGENT,
 			});
 		case "rounds":
@@ -432,7 +434,7 @@ export function format(command: Command, result: unknown): string {
 		case "handoff": {
 			const r = result as HandoffResult;
 			const cut = r.truncated ? ", cut to fit" : "";
-			return `Handoff stored (${r.chars} characters${cut}). Read by ${r.usedBy}.`;
+			return `Handoff stored (${r.chars} characters${cut}). Read by ${r.usedBy}.${r.authorshipUsedBy ? ` Authorship: ${r.authorshipUsedBy}.` : ""}`;
 		}
 		case "rounds": {
 			const r = result as RoundsResult;

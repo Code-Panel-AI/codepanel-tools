@@ -19,6 +19,23 @@ gh pr view <number> --json comments \
 
 How to read it:
 
+When opening or updating your own PR, put `Authoring agent: <actual tool>` and,
+only when known, `Authoring model: <actual model>` as plain-text lines in its
+description, outside code fences. These are self-reported provenance, not
+proof. Do not copy the reviewer model into these fields or infer authorship
+from the GitHub account. Missing markers mean unknown, not human. Check
+`get_optimization`'s authorship diagnostics before claiming a panel provides
+independent review; several Claude models still share one family.
+
+When using `submit_handoff`, pass `authorAgent` and, when known, `authorModel`
+explicitly, along with the full 40-character current head `sha`. With the CLI,
+use `codepanel handoff owner/repo#123 --sha <full-head-sha> --author-agent
+"Claude Code" --author-model "<actual model>" --file handoff.md`. Use your
+actual tool and model, not these example values. `agent` identifies the
+submitting client; it is not used as the code author. Authorship metadata is
+read even when handoff prompts are disabled and expires on a new head commit.
+Explicit current-head handoff author labels take precedence over PR-description declarations.
+
 - Findings are numbered `F1`, `F2`, ... and keep their numbers across rounds.
 - The header names the commit the line numbers refer to ("Line numbers refer to `abc1234`"). If it is not the commit you just pushed, the review of your push is still running. A round usually takes a few minutes; check again every minute or so.
 - The comment's first line is a hidden marker with the same facts, easier to parse than the prose: `<!-- codepanel:review v=1 round=3 reviewedSha=<sha> verdict=blocked blockedBy=F1,F2 -->`. Compare `reviewedSha` with the commit you pushed; `blockedBy` lists the findings to fix or answer (`verdict` is `ready`, `blocked` or `needs-review`). `skippedSha=<sha>` means a spending limit skipped that commit: no review of it is coming, so do not wait.

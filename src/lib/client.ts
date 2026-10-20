@@ -144,6 +144,8 @@ export interface HandoffArgs {
 	text: string;
 	sha?: string;
 	agent?: string;
+	authorAgent?: string;
+	authorModel?: string;
 }
 
 export interface HandoffResult {
@@ -152,6 +154,7 @@ export interface HandoffResult {
 	truncated: boolean;
 	headSha: string | null;
 	usedBy: string;
+	authorshipUsedBy?: string;
 }
 
 /** The author agent's own review of a commit, run from the brief (POST /reviews/local). */
