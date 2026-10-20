@@ -1,5 +1,6 @@
 import type { SpendReport } from "./apiTypes";
 import type { CodePanelClient } from "./client";
+import { optimizationPrompt } from "./optimizationPrompt";
 import { recommendPanel } from "./panelPlanClient";
 
 /** Authenticate and resolve the repo first; optional diagnostic failures must not erase its spend. */
@@ -33,6 +34,7 @@ export async function getOptimization(client: CodePanelClient, repo: string) {
 		diagnosticErrors.length > 0 || balanced.status === "rejected" || economy.status === "rejected";
 	return {
 		spend,
+		markdownPrompt: optimizationPrompt(spend.repo, spend.suggestions),
 		quality: quality.status === "fulfilled" ? quality.value : null,
 		diagnosticErrors,
 		analysisSteps: [

@@ -38,5 +38,6 @@ export function formatOptimization(report: Awaited<ReturnType<typeof getOptimiza
 				: `${name} alternative unavailable.`,
 		),
 		report.nextAction,
+		`\nCopyable Markdown prompt:\n\n${report.markdownPrompt}`,
 	].join("\n");
 }
