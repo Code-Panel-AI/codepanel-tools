@@ -38,7 +38,7 @@ export const PANEL_PLAN_TOOLS = [
 		name: "apply_panel",
 		title: "Apply a recommended panel",
 		description:
-			"Apply get_panel_recommendation's recommendation for the same arguments: it is recomputed, then replaces the target panel's reviewers and the orchestrator's model in one step. With repo, only that repository changes: it gets its own panel if it has none. Returns the recommendation applied and undo; pass undo to restore_panel to put the panel back.",
+			"Apply get_panel_recommendation's recommendation for the same arguments: it is recomputed, then updates existing seats in place, preserving their instructions and history. Explicit roles may add or remove seats; changes lists why. The orchestrator model changes in the same transaction. With repo, only that repository changes: it gets its own panel if it has none. Returns the recommendation applied and undo; pass undo to restore_panel to put the panel back.",
 		input: goal,
 		writes: true,
 		run: (c, a) => applyPanel(c, a),
@@ -52,6 +52,17 @@ export const PANEL_PLAN_TOOLS = [
 			undo: z.object({
 				panelId: z.string(),
 				reviewerIds: z.array(z.string()),
+				reviewerModels: z
+					.array(
+						z.object({
+							name: z.string().optional(),
+							agentId: z.string(),
+							provider: z.string(),
+							modelId: z.string(),
+							reasoningEffort: z.enum(["none", "low", "medium", "high", "xhigh", "max"]).optional(),
+						}),
+					)
+					.optional(),
 				orchestrator: z
 					.object({
 						provider: z.string(),

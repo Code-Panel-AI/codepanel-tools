@@ -1,6 +1,6 @@
 {
 	"name": "codepanel",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "Agent-to-agent AI pull request review: a panel of models reviews the PR, then your coding agent reads each finding over MCP, fixes or rebuts it, and rates it.",
 	"keywords": [
 		"code-review",

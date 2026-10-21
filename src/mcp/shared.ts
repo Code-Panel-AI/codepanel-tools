@@ -5,7 +5,7 @@
 import { z } from "zod";
 import type { ToolDef } from "./tools";
 
-export const SERVER_INFO = { name: "codepanel", title: "CodePanel", version: "0.3.0" } as const;
+export const SERVER_INFO = { name: "codepanel", title: "CodePanel", version: "0.3.1" } as const;
 
 export const SERVER_INSTRUCTIONS =
 	"CodePanel reviews GitHub pull requests with a panel of AI models. Read a pull request's " +

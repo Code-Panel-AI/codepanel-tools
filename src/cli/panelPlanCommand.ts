@@ -103,6 +103,7 @@ function formatRecommendation(r: PanelRecommendation): string {
 				]
 			: []),
 		r.estimate.note,
+		...(r.changes ?? []),
 		...r.budget.changes.map((c) => `  ${c}`),
 	];
 	if (r.budget.fits === false) lines.push(`Still over $${r.budget.maxUsdPerPr} a pull request.`);

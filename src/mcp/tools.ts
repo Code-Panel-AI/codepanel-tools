@@ -24,6 +24,13 @@ const effort = z
 	.enum(["none", "low", "medium", "high", "xhigh", "max"])
 	.optional()
 	.describe("How hard the model should think");
+const pathScope = z
+	.object({ include: z.array(z.string()).default([]), exclude: z.array(z.string()).default([]) })
+	.nullable()
+	.optional()
+	.describe(
+		"Reviewer trigger paths as globs; null clears. Runs before spending; matched reviewers get full context.",
+	);
 const agentId = z
 	.string()
 	.describe("Id of a reviewer or the orchestrator on the panel, from get_panel");
@@ -31,6 +38,15 @@ const provider = z.string().describe("Provider id, from list_models");
 const modelId = z.string().describe("Model id exactly as list_models reports it");
 
 export const TOOLS: ToolDef[] = [
+	tool({
+		name: "get_reviewer_tools",
+		title: "Get reviewer tool capabilities",
+		description:
+			"Which tools reviewers receive, their limits and effective enablement. Pass repo for its effective switch; without repo shows the deployment default. Includes file reads, bounded search, and whether git history is available.",
+		input: { repo: repo.optional() },
+		writes: false,
+		run: (c, a) => c.reviewerTools(a),
+	}),
 	tool({
 		name: "whoami",
 		title: "Show current account",
@@ -116,16 +132,16 @@ export const TOOLS: ToolDef[] = [
 		name: "get_panel",
 		title: "Get review panel",
 		description:
-			"Review panels: reviewers, orchestrator, whether each member's provider key works (callable), whether it keeps failing (failure, with the provider's error; switching its model clears it) and whether the panel can run (ready).",
-		input: {},
+			"Review panels; optionally filter by repo (its effective panel) or panelId, but not both. Includes reviewers, orchestrator, whether each member's provider key works (callable), whether it keeps failing (failure, with the provider's error; switching its model clears it) and whether the panel can run (ready).",
+		input: { repo: repo.optional(), panelId: panelId.optional() },
 		writes: false,
-		run: (c) => c.listPanels(),
+		run: (c, a) => c.listPanels(a),
 	}),
 	tool({
 		name: "list_models",
 		title: "List models",
 		description:
-			"Models the user's provider keys can reach. Panel members can only use models listed here.",
+			"Models the user's provider keys can reach, with prices and explicit tier rankings. Null prices mean cost unknown; spending limits refuse unpriced calls. Tier labels are recommendations, not model capabilities. Panel members can only use models listed here.",
 		input: {},
 		writes: false,
 		run: (c) => c.listModels(),
@@ -151,6 +167,7 @@ export const TOOLS: ToolDef[] = [
 			modelId: modelId.optional(),
 			reasoningEffort: effort,
 			name: z.string().optional(),
+			pathScope,
 			systemPrompt: z
 				.string()
 				.optional()
@@ -171,13 +188,16 @@ export const TOOLS: ToolDef[] = [
 		name: "update_panel_member",
 		title: "Update reviewer",
 		description:
-			"Change a panel member's model, reasoning effort or focus. Pass provider and modelId together.",
+			"Atomically change a panel member while preserving its id and review history. Use name to rename, systemPrompt for reviewer instructions, instructions for additions to the orchestrator prompt; an empty string clears instructions. All fields remain unchanged if any field is refused. Returns the saved member. Pass provider and modelId together.",
 		input: {
 			agentId,
+			name: z.string().optional(),
+			instructions: z.string().optional().describe("Orchestrator additions; empty string clears"),
 			provider: provider.optional(),
 			modelId: modelId.optional(),
 			reasoningEffort: effort,
 			systemPrompt: z.string().optional(),
+			pathScope,
 		},
 		writes: true,
 		run: (c, a) => c.updateMember(a),

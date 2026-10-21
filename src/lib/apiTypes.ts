@@ -25,6 +25,42 @@ export type RoleSummary = {
 	isDefault: boolean;
 };
 
+export type ReviewerCapabilities = {
+	repo: string | null;
+	enabled: boolean;
+	switch: string;
+	revision: string;
+	tools: (
+		| {
+				name: string;
+				description: string;
+				maxLines: number;
+				maxFiles?: undefined;
+				maxMatches?: undefined;
+		  }
+		| {
+				name: string;
+				description: string;
+				maxFiles: number;
+				maxMatches: number;
+				maxLines?: undefined;
+		  }
+	)[];
+	limits: {
+		readonly maxCalls: 6;
+		readonly maxToolTurns: 2;
+		readonly maxCharsPerCall: 8000;
+		readonly maxTotalChars: 24000;
+	};
+	gitHistory: boolean;
+	requiresOwnKey: boolean;
+	availableOnCredits: boolean;
+	availableOnChatGPTPlan: boolean;
+	answerReserveMs: number;
+	shell: boolean;
+	note: string;
+};
+
 export type Repo = {
 	webhookId?: string | undefined;
 	learningDraft?:
@@ -53,8 +89,8 @@ export type Repo = {
 		inlineSuggestions?: boolean | undefined;
 		reviewSwitches?:
 			| {
-					REVIEW_CACHEABLE_PROMPTS?: boolean | undefined;
 					REVIEW_REVIEWER_TOOLS?: boolean | undefined;
+					REVIEW_CACHEABLE_PROMPTS?: boolean | undefined;
 					REVIEW_PRECISION_RULES?: boolean | undefined;
 					REVIEW_CHANGED_LINES?: boolean | undefined;
 					REVIEW_LEARNING_ATTRIBUTION?: boolean | undefined;
@@ -102,11 +138,14 @@ export type Panel = {
 	reviewers: {
 		description?: string | undefined;
 		reasoningEffort?: string | undefined;
+		pathScope?: { include: string[]; exclude: string[] } | undefined;
 		systemPrompt?: string | undefined;
 		instructions?: string | undefined;
 		failure?:
 			| { lastFailureAt?: number | undefined; reason: string; consecutiveFailures: number }
 			| undefined;
+		toolsSupported?: boolean | undefined;
+		warnings?: string[] | undefined;
 		name: string;
 		provider: string;
 		modelId: string;
@@ -124,11 +163,14 @@ export type Panel = {
 	orchestrator: {
 		description?: string | undefined;
 		reasoningEffort?: string | undefined;
+		pathScope?: { include: string[]; exclude: string[] } | undefined;
 		systemPrompt?: string | undefined;
 		instructions?: string | undefined;
 		failure?:
 			| { lastFailureAt?: number | undefined; reason: string; consecutiveFailures: number }
 			| undefined;
+		toolsSupported?: boolean | undefined;
+		warnings?: string[] | undefined;
 		name: string;
 		provider: string;
 		modelId: string;
@@ -166,6 +208,7 @@ export type PanelRecommendation = {
 	budget: { changes: string[]; maxUsdPerPr: number | null; fits: boolean | null };
 	nextAction: "none" | "apply";
 	reviewers: {
+		agentId?: Id<"agents"> | undefined;
 		name: string;
 		tier: "balanced" | "economy" | "frontier";
 		provider: string;
@@ -189,14 +232,17 @@ export type PanelRecommendation = {
 	};
 	repo: string | null;
 	unchanged: boolean;
+	changes: string[];
 	current: {
 		reviewers: {
+			agentId?: Id<"agents"> | undefined;
 			reasoningEffort?: string | undefined;
 			name: string;
 			provider: string;
 			modelId: string;
 		}[];
 		orchestrator: {
+			agentId?: Id<"agents"> | undefined;
 			reasoningEffort?: string | undefined;
 			name: string;
 			provider: string;
@@ -234,6 +280,7 @@ export type PanelApplied = {
 		budget: { changes: string[]; maxUsdPerPr: number | null; fits: boolean | null };
 		nextAction: "none" | "apply";
 		reviewers: {
+			agentId?: Id<"agents"> | undefined;
 			name: string;
 			tier: "balanced" | "economy" | "frontier";
 			provider: string;
@@ -257,14 +304,17 @@ export type PanelApplied = {
 		};
 		repo: string | null;
 		unchanged: boolean;
+		changes: string[];
 		current: {
 			reviewers: {
+				agentId?: Id<"agents"> | undefined;
 				reasoningEffort?: string | undefined;
 				name: string;
 				provider: string;
 				modelId: string;
 			}[];
 			orchestrator: {
+				agentId?: Id<"agents"> | undefined;
 				reasoningEffort?: string | undefined;
 				name: string;
 				provider: string;
@@ -292,6 +342,15 @@ export type PanelApplied = {
 		};
 	};
 	undo: {
+		reviewerModels?:
+			| {
+					name?: string | undefined;
+					reasoningEffort?: "high" | "medium" | "low" | "none" | "xhigh" | "max" | undefined;
+					provider: string;
+					agentId: Id<"agents">;
+					modelId: string;
+			  }[]
+			| undefined;
 		panelId: Id<"reviewPanels">;
 		orchestrator: {
 			reasoningEffort?: "high" | "medium" | "low" | "none" | "xhigh" | "max" | undefined;
@@ -462,6 +521,7 @@ export type ReviewSnapshot = {
 					  }
 					| undefined;
 				disputes: {
+					lapsedAt?: number | null | undefined;
 					id: Id<"findings">;
 					at: number;
 					claim:
@@ -492,6 +552,7 @@ export type ReviewSnapshot = {
 					status: "new" | "open";
 					patch: string | null;
 					dispute: {
+						lapsedAt?: number | null | undefined;
 						at: number;
 						claim:
 							| "false_positive"
@@ -1447,6 +1508,7 @@ export type DisputeView = {
 	reason: string | null;
 	headSha: string;
 	waiting: string | null;
+	lapsedAt: number | null;
 };
 
 export type DisputeStatus = "pending" | "withdrawn" | "upheld" | "revised" | "closed";

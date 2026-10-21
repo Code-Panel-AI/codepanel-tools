@@ -11,8 +11,13 @@ import type { ReviewStatus } from "./client";
 
 export type WaitSurface = "mcp" | "cli";
 
-/** How long to wait for a review to appear before concluding there is none. */
-export const DEFAULT_START_GRACE_MS = 60_000;
+/**
+ * How long to wait for a review to appear before concluding there is none.
+ * A push's round starts only after the server's debounce (a minute) and its
+ * setup reads, so this covers both; convex/lib/reviewTiming.test.ts checks it
+ * stays above the debounce.
+ */
+export const DEFAULT_START_GRACE_MS = 150_000;
 /** Absence seen longer ago than this is forgotten; the situation has likely changed. */
 const ABSENCE_MEMORY_MS = 5 * 60_000;
 const MS = 1000;

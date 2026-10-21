@@ -17,8 +17,18 @@ export const timeoutSeconds = z
 	.max(MAX_TIMEOUT_SECONDS)
 	.optional()
 	.describe(
-		`Give up after this many seconds (default ${DEFAULT_WAIT_TIMEOUT_MS / MS}, max ${MAX_TIMEOUT_SECONDS}). On timeout the result says whether a review is running, and you call again. Use a smaller value if your client cancels tool calls sooner.`,
+		`Give up after this many seconds (default ${DEFAULT_WAIT_TIMEOUT_MS / MS}, max ${MAX_TIMEOUT_SECONDS}). On timeout the result says whether a review is running, and you call again. The remote server (/mcp) ends each call within about 80 seconds whatever you pass; use a smaller value if your client cancels tool calls sooner.`,
 	);
+
+/** The timeout a call asked for, or the default, held to what its host allows. */
+function boundedTimeout(
+	context: ToolContext | undefined,
+	seconds: number | undefined,
+	fallbackMs: number,
+): number {
+	const asked = seconds === undefined ? fallbackMs : seconds * MS;
+	return context?.maxWaitMs === undefined ? asked : Math.min(asked, context.maxWaitMs);
+}
 
 /** Wait options for a tool call: its cancellation, a progress ping per poll, and the timeout. */
 export function waitOptions(context: ToolContext | undefined, seconds?: number): WaitOptions {
@@ -26,7 +36,7 @@ export function waitOptions(context: ToolContext | undefined, seconds?: number):
 		signal: context?.signal,
 		sleep: context?.sleep,
 		now: context?.now,
-		timeoutMs: seconds === undefined ? undefined : seconds * MS,
+		timeoutMs: boundedTimeout(context, seconds, DEFAULT_WAIT_TIMEOUT_MS),
 		onPoll: (status) => context?.progress?.(status.activity ?? status.status ?? "waiting"),
 	};
 }
@@ -72,7 +82,7 @@ export const WAIT_TOOLS = [
 			const { timeoutSeconds: seconds, questionId, question, ...args } = a;
 			const options = {
 				signal: context?.signal,
-				timeoutMs: seconds === undefined ? undefined : seconds * MS,
+				timeoutMs: boundedTimeout(context, seconds, DEFAULT_ASK_TIMEOUT_MS),
 			};
 			if (questionId) return askAndWait(c, { questionId }, options);
 			if (!question) throw new Error("Pass a question, or the questionId of a pending one");
