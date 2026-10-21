@@ -120,6 +120,7 @@ const PLACEHOLDERS: Record<string, string> = {
 	p: "x",
 	m: "x",
 	text: "x",
+	json: '{"include":["src/**"],"exclude":[]}',
 	name: "x",
 	site_url: "https://x.convex.site",
 };

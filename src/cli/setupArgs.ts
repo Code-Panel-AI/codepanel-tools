@@ -31,8 +31,9 @@ export type SetupCommand =
 			reviewSwitches?: ReviewSwitchesUpdate;
 			escalation?: EscalationSetting | null;
 	  }
-	| { kind: "panel" }
+	| { kind: "panel"; repo?: string; panelId?: string }
 	| { kind: "panel.roles" }
+	| { kind: "panel.tools"; repo?: string }
 	| {
 			kind: "panel.addReviewer";
 			panelId?: string;
@@ -42,15 +43,19 @@ export type SetupCommand =
 			reasoningEffort?: ReasoningEffort;
 			name?: string;
 			systemPrompt?: string;
+			pathScope?: { include: string[]; exclude: string[] } | null;
 	  }
 	| { kind: "panel.removeReviewer"; panelId?: string; agentId: string }
 	| {
 			kind: "panel.updateMember";
 			agentId: string;
+			name?: string;
+			instructions?: string;
 			provider?: string;
 			modelId?: string;
 			reasoningEffort?: ReasoningEffort;
 			systemPrompt?: string;
+			pathScope?: { include: string[]; exclude: string[] } | null;
 	  }
 	| {
 			kind: "panel.orchestrator";
@@ -143,6 +148,28 @@ export function parseRepos(
  * model is suggested on the role's tier unless --provider or --model is given.
  * Without one, both are required, as before roles existed.
  */
+function pathScopeFlag(r: Reader) {
+	const raw = r.flag("path-scope");
+	if (raw === undefined) return undefined;
+	try {
+		const value: unknown = JSON.parse(raw);
+		if (value === null) return null;
+		if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error();
+		const scope = value as Record<string, unknown>;
+		if (Object.keys(scope).some((k) => k !== "include" && k !== "exclude")) throw new Error();
+		const include = scope.include ?? [],
+			exclude = scope.exclude ?? [];
+		if (
+			!Array.isArray(include) ||
+			!Array.isArray(exclude) ||
+			[...include, ...exclude].some((p) => typeof p !== "string")
+		)
+			throw new Error();
+		return { include: include as string[], exclude: exclude as string[] };
+	} catch {
+		throw new UsageError('--path-scope must be JSON {"include":["src/**"],"exclude":[]} or null');
+	}
+}
 function parseAddReviewer(r: Reader): SetupCommand {
 	const role = r.flag("role");
 	const provider = role ? r.flag("provider") : r.required("provider");
@@ -157,6 +184,7 @@ function parseAddReviewer(r: Reader): SetupCommand {
 		reasoningEffort: r.effort(),
 		name: r.flag("name"),
 		systemPrompt: r.flag("prompt"),
+		pathScope: pathScopeFlag(r),
 	};
 }
 
@@ -166,7 +194,9 @@ export function parsePanel(args: string[], r: Reader): SetupCommand | PanelPlanC
 	noExtra(extra);
 	switch (sub) {
 		case undefined:
-			return { kind: "panel" };
+			return { kind: "panel", repo: r.flag("repo"), panelId: r.flag("panel") };
+		case "tools":
+			return { kind: "panel.tools", repo: r.flag("repo") };
 		case "roles":
 			return { kind: "panel.roles" };
 		case "add-reviewer":
@@ -185,10 +215,13 @@ export function parsePanel(args: string[], r: Reader): SetupCommand | PanelPlanC
 			return {
 				kind: "panel.updateMember",
 				agentId: r.reviewerId(),
+				name: r.flag("name"),
+				instructions: r.flag("instructions"),
 				provider: r.flag("provider"),
 				modelId: r.flag("model"),
 				reasoningEffort: r.effort(),
 				systemPrompt: r.flag("prompt"),
+				pathScope: pathScopeFlag(r),
 			};
 		case "orchestrator":
 			return {

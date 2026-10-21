@@ -77,6 +77,12 @@ export interface ToolContext {
 	/** The clock a waiting tool polls by. Injected in tests. */
 	sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
 	now?: () => number;
+	/**
+	 * The longest one call may block, whatever timeoutSeconds asks for. The
+	 * remote server sets it below its proxy's limit; a wait cut short says to
+	 * call again, as any timeout does.
+	 */
+	maxWaitMs?: number;
 }
 
 export interface ToolDef {

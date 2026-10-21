@@ -84,6 +84,7 @@ describe("a wait that ends before any review appears", () => {
 		const short = await waitForReview(w.client, TARGET, {
 			...w.options,
 			timeoutMs: 2000,
+			startGraceMs: GRACE_MS,
 			surface: "cli",
 		});
 		if (short.status !== "timeout") throw new Error("expected a timeout");
@@ -116,7 +117,7 @@ describe("a wait that ends before any review appears", () => {
 
 	test("short waits made one after another add up to no_review", async () => {
 		const w = world(NONE);
-		const options = { ...w.options, timeoutMs: 20_000 };
+		const options = { ...w.options, timeoutMs: 20_000, startGraceMs: GRACE_MS };
 		const outcomes: string[] = [];
 		for (let call = 0; call < 5; call++) {
 			outcomes.push((await waitForReview(w.client, TARGET, options)).status);

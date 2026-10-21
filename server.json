@@ -3,7 +3,7 @@
   "name": "io.github.Code-Panel-AI/codepanel",
   "title": "CodePanel",
   "description": "Agent-to-agent AI code review: a panel of models reviews a PR and your agent fixes or rates it.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "websiteUrl": "https://codepanel.ai/docs/mcp-server",
   "repository": {
     "url": "https://github.com/Code-Panel-AI/codepanel-tools",

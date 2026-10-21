@@ -19,9 +19,16 @@ export interface PanelGoalArgs {
 }
 
 /** apply's `undo`, with its ids as the plain strings an agent passes back. */
-export type PanelUndo = Omit<PanelApplied["undo"], "panelId" | "reviewerIds"> & {
+export type PanelUndo = Omit<PanelApplied["undo"], "panelId" | "reviewerIds" | "reviewerModels"> & {
 	panelId: string;
 	reviewerIds: string[];
+	reviewerModels?: Array<{
+		name?: string;
+		agentId: string;
+		provider: string;
+		modelId: string;
+		reasoningEffort?: import("./client").ReasoningEffort;
+	}>;
 };
 
 /** GET takes the role list as one comma-separated string. */

@@ -245,6 +245,8 @@ export interface AddLearningArgs {
 	repo: string;
 	text: string;
 	scope?: string;
+	applied?: false;
+	fields?: string[];
 	pr?: number;
 	agent?: string;
 }
@@ -278,6 +280,8 @@ export interface ErrorDetails {
 	retryAfter?: number;
 	/** The scope the token lacks, for missing_scope. */
 	scope?: string;
+	applied?: false;
+	fields?: string[];
 	/** For a precondition, its stable reason, e.g. "credits_required" (convex/lib/refusal.ts). */
 	reason?: string;
 }
@@ -317,7 +321,7 @@ async function readBody(response: Response): Promise<{ parsed: boolean; body: un
 }
 
 function errorFrom(response: Response, body: unknown): CodePanelError {
-	const { error, code, retryAfter, scope, reason } = (body ?? {}) as {
+	const { error, code, retryAfter, scope, reason, applied, fields } = (body ?? {}) as {
 		error?: string;
 	} & ErrorDetails;
 	return new CodePanelError(response.status, error ?? `HTTP ${response.status}`, {
@@ -325,6 +329,8 @@ function errorFrom(response: Response, body: unknown): CodePanelError {
 		...(retryAfter === undefined ? {} : { retryAfter }),
 		...(scope === undefined ? {} : { scope }),
 		...(reason === undefined ? {} : { reason }),
+		...(applied === undefined ? {} : { applied }),
+		...(fields === undefined ? {} : { fields }),
 	});
 }
 
@@ -456,7 +462,10 @@ export class CodePanelClient {
 	setCreditsFirst = (enabled: boolean | null) =>
 		this.request<CreditsFirstChange>("POST", "/credits-first", { enabled });
 
-	listPanels = () => this.request<Panel[]>("GET", "/panels");
+	reviewerTools = (args: { repo?: string } = {}) =>
+		this.request<import("./apiTypes").ReviewerCapabilities>("GET", "/reviewer-tools", args);
+	listPanels = (filter: { repo?: string; panelId?: string } = {}) =>
+		this.request<Panel[]>("GET", "/panels", filter);
 	listModels = () => this.request<Model[]>("GET", "/models");
 	listRoles = () => this.request<RoleSummary[]>("GET", "/roles");
 	addReviewer = (args: {
@@ -467,22 +476,41 @@ export class CodePanelClient {
 		reasoningEffort?: ReasoningEffort;
 		name?: string;
 		systemPrompt?: string;
-	}) => this.request<{ agentId: string }>("POST", "/panels/reviewers/add", args);
+		pathScope?: { include: string[]; exclude: string[] } | null;
+	}) =>
+		this.request<{ agentId: string; member?: Panel["reviewers"][number] }>(
+			"POST",
+			"/panels/reviewers/add",
+			args,
+		);
 	removeReviewer = (args: { panelId: string; agentId: string }) =>
 		this.request<Ok>("POST", "/panels/reviewers/remove", args);
 	updateMember = (args: {
 		agentId: string;
+		name?: string;
+		instructions?: string;
 		provider?: string;
 		modelId?: string;
 		reasoningEffort?: ReasoningEffort;
 		systemPrompt?: string;
-	}) => this.request<Ok>("POST", "/panels/members/update", args);
+		pathScope?: { include: string[]; exclude: string[] } | null;
+	}) =>
+		this.request<Ok & { applied: true; member: Panel["reviewers"][number] }>(
+			"POST",
+			"/panels/members/update",
+			args,
+		);
 	setOrchestrator = (args: {
 		panelId: string;
 		provider: string;
 		modelId: string;
 		reasoningEffort?: ReasoningEffort;
-	}) => this.request<{ agentId: string }>("POST", "/panels/orchestrator", args);
+	}) =>
+		this.request<{ agentId: string; member?: Panel["reviewers"][number] }>(
+			"POST",
+			"/panels/orchestrator",
+			args,
+		);
 	updatePanel = (args: { panelId: string; name?: string; budgetUsd?: number | null }) =>
 		this.request<Ok>("POST", "/panels/update", args);
 

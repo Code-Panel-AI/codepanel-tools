@@ -25,7 +25,9 @@ which take precedence.
   codepanel auto-reload
   codepanel auto-reload on|off|set [--threshold <usd>] [--pack <usd>] [--cap <usd>]
   codepanel credits-first [on|off|default]
-  codepanel panel
+  codepanel panel [--repo <owner/name>]
+  codepanel panel --panel <id>
+  codepanel panel tools [--repo <owner/name>]
   codepanel models
   codepanel panel roles
   codepanel panel recommend [--cost low|medium|high] [--quality low|medium|high] [--repo <owner/name>] [--panel <id>] [--roles <id,id>] [--provider p] [--max-usd-per-pr <usd>]
@@ -34,7 +36,7 @@ which take precedence.
   codepanel panel add-reviewer [--panel <id>] --role <id> [--provider p [--model m]] [--effort e] [--name n] [--prompt text]
   codepanel panel add-reviewer [--panel <id>] --provider <p> --model <m> [--effort e] [--name n] [--prompt text]
   codepanel panel remove-reviewer [--panel <id>] --reviewer <id>
-  codepanel panel update-member --reviewer <id> [--provider p --model m] [--effort e] [--prompt text]
+  codepanel panel update-member --reviewer <id> [--provider p --model m] [--effort e] [--name n] [--prompt text] [--instructions text] [--path-scope <json>]
   codepanel panel orchestrator [--panel <id>] --provider <p> --model <m> [--effort e]
   codepanel panel set [--panel <id>] [--name n] [--budget <usd>|none]
   codepanel keys
